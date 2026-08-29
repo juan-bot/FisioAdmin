@@ -122,6 +122,7 @@ export interface UserProfile {
   role: UserRole;
   approved: boolean;
   createdAt: string;
+  password?: string;
 }
 
 export interface ChartData {

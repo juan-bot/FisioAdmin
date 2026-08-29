@@ -89,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role: first ? 'admin' : 'pending',
       approved: first,
       createdAt: new Date().toISOString(),
+      password,
     };
     await createUserProfile(prof);
   };
