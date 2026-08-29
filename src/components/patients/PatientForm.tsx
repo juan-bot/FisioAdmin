@@ -23,8 +23,6 @@ const emptyForm = {
   medicalHistory: '',
   allergies: '',
   medications: '',
-  insuranceProvider: '',
-  insuranceNumber: '',
   notes: '',
   status: 'active' as Patient['status'],
 };
@@ -47,8 +45,6 @@ export function PatientForm({ patient, onClose }: PatientFormProps) {
         medicalHistory: patient.medicalHistory,
         allergies: patient.allergies,
         medications: patient.medications,
-        insuranceProvider: patient.insuranceProvider || '',
-        insuranceNumber: patient.insuranceNumber || '',
         notes: patient.notes,
         status: patient.status,
       };
@@ -85,8 +81,6 @@ export function PatientForm({ patient, onClose }: PatientFormProps) {
       medicalHistory: form.medicalHistory,
       allergies: form.allergies,
       medications: form.medications,
-      insuranceProvider: form.insuranceProvider,
-      insuranceNumber: form.insuranceNumber,
       notes: form.notes,
       status: form.status,
     };
@@ -185,20 +179,6 @@ export function PatientForm({ patient, onClose }: PatientFormProps) {
                 <option value="inactive">Inactivo</option>
                 <option value="discharged">Dado de alta</option>
               </select>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900 mb-3 text-primary">Seguro</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className={labelClass}>Proveedor</label>
-              <input name="insuranceProvider" className={inputClass} value={form.insuranceProvider} onChange={handleChange} placeholder="Nombre del seguro" />
-            </div>
-            <div>
-              <label className={labelClass}>Número de póliza</label>
-              <input name="insuranceNumber" className={inputClass} value={form.insuranceNumber} onChange={handleChange} placeholder="Número de póliza" />
             </div>
           </div>
         </div>

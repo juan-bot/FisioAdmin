@@ -1,5 +1,5 @@
 import { useState, FormEvent } from 'react';
-import { useApp, CURRENT_THERAPIST } from '../../context/AppContext';
+import { useApp } from '../../context/AppContext';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Appointment } from '../../types';
@@ -10,7 +10,7 @@ interface AppointmentFormProps {
 }
 
 export function AppointmentForm({ appointment, onClose }: AppointmentFormProps) {
-  const { patients, addAppointment, updateAppointment } = useApp();
+  const { patients, addAppointment, updateAppointment, currentTherapist } = useApp();
   const [form, setForm] = useState(() => {
     const today = new Date().toISOString().split('T')[0];
     return {
@@ -22,7 +22,6 @@ export function AppointmentForm({ appointment, onClose }: AppointmentFormProps) 
       status: appointment?.status || 'scheduled' as Appointment['status'],
       notes: appointment?.notes || '',
       amount: appointment?.amount != null ? String(appointment.amount) : '',
-      room: appointment?.room || '',
     };
   });
   const [error, setError] = useState('');
@@ -57,11 +56,10 @@ export function AppointmentForm({ appointment, onClose }: AppointmentFormProps) 
       endTime: form.endTime,
       type: form.type,
       status: form.status,
-      therapistId: CURRENT_THERAPIST.id,
-      therapistName: CURRENT_THERAPIST.name,
+      therapistId: currentTherapist.id,
+      therapistName: currentTherapist.name,
       notes: form.notes,
       amount: form.amount ? Number(form.amount) : 0,
-      room: form.room,
     };
 
     if (appointment) {
@@ -128,17 +126,11 @@ export function AppointmentForm({ appointment, onClose }: AppointmentFormProps) 
           </div>
 
           <div>
-            <label className={labelClass}>Sala</label>
-            <input name="room" className={inputClass} value={form.room} onChange={handleChange} placeholder="Sala 1" />
-          </div>
-
-          <div>
             <label className={labelClass}>Monto cobrado (MXN)</label>
             <input name="amount" type="number" min="0" step="0.01" className={inputClass} value={form.amount} onChange={handleChange} placeholder="0.00" />
           </div>
 
           <div className="sm:col-span-2">
-            <label className={labelClass}>Notas</label>
             <textarea name="notes" rows={3} className={inputClass} value={form.notes} onChange={handleChange} placeholder="Notas sobre la cita..." />
           </div>
         </div>

@@ -1,6 +1,10 @@
-import { useState, ReactNode } from 'react';
+import { useState } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppProvider } from './context/AppContext';
 import { Sidebar } from './components/layout/Sidebar';
+import { Footer } from './components/layout/Footer';
+import { AuthScreen } from './components/auth/AuthScreen';
+import { Users } from './components/admin/Users';
 import Dashboard from './components/dashboard/Dashboard';
 import Patients from './components/patients/Patients';
 import PatientDetail from './components/patients/PatientDetail';
@@ -9,7 +13,6 @@ import Calendar from './components/appointments/Calendar';
 import Prescriptions from './components/prescriptions/Prescriptions';
 import Progress from './components/progress/Progress';
 import Metrics from './components/dashboard/Metrics';
-import { Footer } from './components/layout/Footer';
 
 const icons = {
   dashboard: (
@@ -47,9 +50,14 @@ const icons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
     </svg>
   ),
+  users: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-2a6 6 0 0112 0v2zm0 0h6v-2a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+    </svg>
+  ),
 };
 
-const navItems = [
+const baseNavItems = [
   { id: 'dashboard', label: 'Dashboard', icon: icons.dashboard },
   { id: 'patients', label: 'Pacientes', icon: icons.patients },
   { id: 'appointments', label: 'Citas', icon: icons.appointments },
@@ -60,8 +68,13 @@ const navItems = [
 ];
 
 function MainContent() {
+  const { isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [viewingPatientId, setViewingPatientId] = useState<string | null>(null);
+
+  const navItems = isAdmin
+    ? [...baseNavItems, { id: 'users', label: 'Usuarios', icon: icons.users }]
+    : baseNavItems;
 
   const handlePatientsHeader = () => {
     setActiveTab('patients');
@@ -98,6 +111,8 @@ function MainContent() {
         return <Progress />;
       case 'metrics':
         return <Metrics />;
+      case 'users':
+        return <Users />;
       default:
         return <Dashboard onNavigate={handleTabChange} />;
     }
@@ -143,11 +158,54 @@ function Header() {
   );
 }
 
-function App() {
+function LoadingScreen({ message }: { message: string }) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="text-center">
+        <div className="animate-spin w-10 h-10 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4" />
+        <p className="text-sm text-gray-500">{message}</p>
+      </div>
+    </div>
+  );
+}
+
+function PendingScreen() {
+  const { logout } = useAuth();
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+      <div className="max-w-md w-full bg-white p-8 rounded-2xl border border-gray-200 shadow-sm text-center">
+        <div className="w-14 h-14 rounded-2xl bg-accent-light text-accent mx-auto mb-4 flex items-center justify-center text-2xl">⏳</div>
+        <h1 className="text-xl font-bold text-gray-900">Cuenta pendiente de aprobación</h1>
+        <p className="text-sm text-gray-500 mt-2">
+          Tu registro fue recibido. El administrador debe aprobar tu acceso antes de que puedas usar el sistema.
+        </p>
+        <button onClick={() => logout()} className="mt-6 text-sm text-primary font-medium hover:underline">
+          Cerrar sesión
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Root() {
+  const { status } = useAuth();
+
+  if (status === 'loading') return <LoadingScreen message="Cargando..." />;
+  if (status === 'unauthenticated') return <AuthScreen />;
+  if (status === 'pending') return <PendingScreen />;
+
   return (
     <AppProvider>
       <MainContent />
     </AppProvider>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <Root />
+    </AuthProvider>
   );
 }
 

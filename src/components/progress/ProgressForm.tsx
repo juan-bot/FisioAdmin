@@ -1,5 +1,5 @@
 import { useState, FormEvent } from 'react';
-import { useApp, CURRENT_THERAPIST } from '../../context/AppContext';
+import { useApp } from '../../context/AppContext';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { ProgressRecord, Metric } from '../../types';
@@ -20,7 +20,7 @@ interface MetricForm {
 }
 
 export function ProgressForm({ record, onClose }: ProgressFormProps) {
-  const { patients, addProgressRecord, updateProgressRecord, progressRecords } = useApp();
+  const { patients, addProgressRecord, updateProgressRecord, progressRecords, currentTherapist } = useApp();
   const [form, setForm] = useState(() => ({
     patientId: record?.patientId || '',
     date: record?.date || new Date().toISOString().split('T')[0],
@@ -128,8 +128,8 @@ export function ProgressForm({ record, onClose }: ProgressFormProps) {
     const recordData = {
       patientId: form.patientId,
       patientName: patient ? `${patient.firstName} ${patient.lastName}` : '',
-      therapistId: CURRENT_THERAPIST.id,
-      therapistName: CURRENT_THERAPIST.name,
+      therapistId: currentTherapist.id,
+      therapistName: currentTherapist.name,
       date: form.date,
       metrics: validMetrics,
       painLevel: form.painLevel,

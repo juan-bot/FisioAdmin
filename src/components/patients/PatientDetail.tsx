@@ -140,10 +140,6 @@ export default function PatientDetail({ patientId, onBack }: { patientId: string
                   <p className="text-xs text-gray-500 font-medium">Género</p>
                   <p className="text-sm text-gray-900">{patient.gender === 'male' ? 'Masculino' : patient.gender === 'female' ? 'Femenino' : 'Otro'}</p>
                 </div>
-                <div>
-                  <p className="text-xs text-gray-500 font-medium">Seguro</p>
-                  <p className="text-sm text-gray-900">{patient.insuranceProvider || '—'}</p>
-                </div>
               </div>
 
               <div className="mt-6">

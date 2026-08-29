@@ -15,8 +15,6 @@ export interface Patient {
   medicalHistory: string;
   allergies: string;
   medications: string;
-  insuranceProvider?: string;
-  insuranceNumber?: string;
   notes: string;
   createdAt: string;
   updatedAt: string;
@@ -36,7 +34,6 @@ export interface Appointment {
   therapistName: string;
   notes: string;
   amount?: number;
-  room?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -114,6 +111,17 @@ export interface DashboardStats {
   completedSessionsThisMonth: number;
   revenueThisMonth: number;
   averageProgressScore: number;
+}
+
+export type UserRole = 'admin' | 'therapist' | 'pending';
+
+export interface UserProfile {
+  uid: string;
+  email: string;
+  displayName: string;
+  role: UserRole;
+  approved: boolean;
+  createdAt: string;
 }
 
 export interface ChartData {

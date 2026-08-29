@@ -1,0 +1,12 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Solo usuarios autenticados pueden leer/escribir.
+    // La autorización de "solo gente autorizada" se controla en la app:
+    // un usuario no aprobado queda en estado "pending" y no carga datos.
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useApp, CURRENT_THERAPIST } from '../../context/AppContext';
+import { useApp } from '../../context/AppContext';
 import { Card, CardBody, CardHeader } from '../ui/Card';
 import { formatCurrency } from '../../utils/format';
 import { Patient } from '../../types';
@@ -94,7 +94,7 @@ function DonutChart() {
 }
 
 export default function Metrics() {
-  const { patients, appointments, prescriptions, progressRecords, stats } = useApp();
+  const { patients, appointments, prescriptions, progressRecords, stats, currentTherapist } = useApp();
   const [timeRange, setTimeRange] = useState('month');
 
   const monthlyPatients = [28, 35, 42, 48, 55, 62];
@@ -135,7 +135,7 @@ export default function Metrics() {
   }, {});
 
   const specialists = [{
-    name: CURRENT_THERAPIST.name,
+    name: currentTherapist.name,
     patients: 12,
     sessions: 45,
     rating: 4.8,

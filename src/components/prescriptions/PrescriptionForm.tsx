@@ -1,5 +1,5 @@
 import { useState, FormEvent } from 'react';
-import { useApp, CURRENT_THERAPIST } from '../../context/AppContext';
+import { useApp } from '../../context/AppContext';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Prescription, Treatment } from '../../types';
@@ -20,7 +20,7 @@ const emptyTreatment: Omit<Treatment, 'id'> = {
 };
 
 export function PrescriptionForm({ prescription, onClose }: PrescriptionFormProps) {
-  const { patients, addPrescription, updatePrescription } = useApp();
+  const { patients, addPrescription, updatePrescription, currentTherapist } = useApp();
   const [form, setForm] = useState(() => ({
     patientId: prescription?.patientId || '',
     date: prescription?.date || new Date().toISOString().split('T')[0],
@@ -72,8 +72,8 @@ export function PrescriptionForm({ prescription, onClose }: PrescriptionFormProp
     const prescriptionData = {
       patientId: form.patientId,
       patientName: patient ? `${patient.firstName} ${patient.lastName}` : '',
-      therapistId: CURRENT_THERAPIST.id,
-      therapistName: CURRENT_THERAPIST.name,
+      therapistId: currentTherapist.id,
+      therapistName: currentTherapist.name,
       date: form.date,
       diagnosis: form.diagnosis,
       treatments: treatments.map(t => ({
