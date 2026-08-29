@@ -15,7 +15,7 @@ interface SidebarProps {
 
 const Logo = () => (
   <div className="flex items-center gap-3 px-5 py-5">
-    <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
+    <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/30 dark:shadow-lg dark:shadow-[#a7c874]/40">
       <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
       </svg>
@@ -59,7 +59,8 @@ export function Sidebar({ navItems, activeTab, onTabChange }: SidebarProps) {
         <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setIsOpen(false)} />
       )}
 
-      <aside className={`fixed top-0 left-0 h-full bg-white border-r border-gray-200 w-64 max-w-[85%] z-50 transform transition-transform duration-300 ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
+      <aside className={`fixed top-0 left-0 h-full bg-white border-r border-gray-200 w-64 max-w-[85%] z-50 transform transition-transform duration-300 dark:bg-gradient-to-b dark:from-[#15211a] dark:to-[#0d130e] dark:border-[#2c4730] ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
+
         <div className="flex flex-col h-full">
           <Logo />
 
@@ -73,8 +74,8 @@ export function Sidebar({ navItems, activeTab, onTabChange }: SidebarProps) {
                 }}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                   activeTab === item.id
-                    ? 'bg-primary-light text-primary-dark border-l-2 border-primary'
-                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900 border-l-2 border-transparent'
+                    ? 'bg-primary-light text-primary-dark border-l-2 border-primary dark:bg-[#a7c874]/15 dark:text-[#c2e08a] dark:border-[#a7c874] dark:shadow-lg dark:shadow-[#a7c874]/40'
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900 border-l-2 border-transparent dark:text-[#b6c6b4] dark:hover:bg-[#a7c874]/10 dark:hover:text-[#dde7da]'
                 }`}
               >
                 <span className={activeTab === item.id ? 'text-primary' : 'text-gray-500'}>{item.icon}</span>
@@ -86,8 +87,8 @@ export function Sidebar({ navItems, activeTab, onTabChange }: SidebarProps) {
             ))}
           </nav>
 
-          <div className="p-4 border-t border-gray-200">
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+          <div className="p-4 border-t border-gray-200 dark:border-[#2c4730]">
+            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl dark:bg-[#a7c874]/10">
               <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center text-white font-semibold text-sm">
                 {initials}
               </div>

@@ -2,6 +2,8 @@
 
 @source "./**/*.{ts,tsx,js,jsx}";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-primary: #5f6b3a;
   --color-primary-hover: #4f5a30;
@@ -111,11 +113,11 @@
   }
 
   .card {
-    @apply bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden;
+    @apply bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden dark:bg-gray-800 dark:border-gray-700;
   }
 
   .card-header {
-    @apply px-6 py-4 border-b border-gray-100 bg-gray-50;
+    @apply px-6 py-4 border-b border-gray-100 bg-gray-50 dark:bg-gray-800/60 dark:border-gray-700;
   }
 
   .card-body {
@@ -127,22 +129,230 @@
   }
 
   .badge-success {
-    @apply bg-success-light text-success;
+    @apply bg-success-light text-success dark:bg-success/20 dark:text-success;
   }
 
   .badge-warning {
-    @apply bg-warning-light text-warning;
+    @apply bg-warning-light text-warning dark:bg-warning/20 dark:text-warning;
   }
 
   .badge-danger {
-    @apply bg-danger-light text-danger;
+    @apply bg-danger-light text-danger dark:bg-danger/20 dark:text-danger;
   }
 
   .badge-info {
-    @apply bg-primary-light text-primary-dark;
+    @apply bg-primary-light text-primary-dark dark:bg-primary/20 dark:text-primary;
   }
 
   .badge-secondary {
-    @apply bg-gray-100 text-gray-700;
+    @apply bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200;
   }
+}
+
+/* ===========================================================
+   Modo oscuro "vistoso": paleta verde-marca, gradientes y glows.
+   Se activa con la clase .dark en <html>.
+   =========================================================== */
+.dark {
+  color-scheme: dark;
+  --dm-bg: #0d130e;
+  --dm-surface: #16221a;
+  --dm-surface-2: #1e2e22;
+  --dm-elev: #233626;
+  --dm-border: #2c4730;
+  --dm-brand: #a7c874;
+  --dm-brand-2: #c2e08a;
+  --dm-accent: #e3c878;
+}
+
+.dark body {
+  background-color: var(--dm-bg);
+  background-image: radial-gradient(1200px 600px at 100% -10%, rgba(167, 200, 116, 0.10), transparent 60%),
+                    radial-gradient(900px 500px at -10% 110%, rgba(227, 200, 120, 0.08), transparent 55%);
+  color: #e8efe6;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: var(--dm-elev);
+  border-color: var(--dm-bg);
+}
+
+.dark ::selection {
+  background: rgba(167, 200, 116, 0.35);
+  color: #fff;
+}
+
+.dark .bg-white,
+.dark .bg-gray-50 {
+  background-color: var(--dm-surface) !important;
+}
+
+.dark .bg-gray-100,
+.dark .bg-gray-200 {
+  background-color: var(--dm-surface-2) !important;
+}
+
+.dark .bg-gray-300 {
+  background-color: var(--dm-elev) !important;
+}
+
+.dark .text-gray-900,
+.dark .text-gray-800 {
+  color: #f3f8f1 !important;
+}
+
+.dark .text-gray-700 {
+  color: #dde7da !important;
+}
+
+.dark .text-gray-600 {
+  color: #b6c6b4 !important;
+}
+
+.dark .text-gray-500,
+.dark .text-gray-400 {
+  color: #8a9a88 !important;
+}
+
+.dark .text-primary-dark {
+  color: var(--dm-brand-2) !important;
+}
+
+.dark .text-primary {
+  color: var(--dm-brand) !important;
+}
+
+.dark .text-accent,
+.dark .text-accent-dark {
+  color: var(--dm-accent) !important;
+}
+
+/* Fondos "light" de marca -> tintes translúcidos en dark */
+.dark .bg-primary-light {
+  background-color: rgba(167, 200, 116, 0.14) !important;
+}
+.dark .bg-secondary-light {
+  background-color: rgba(167, 200, 116, 0.12) !important;
+}
+.dark .bg-accent-light {
+  background-color: rgba(227, 200, 120, 0.14) !important;
+}
+.dark .bg-danger-light {
+  background-color: rgba(220, 90, 70, 0.15) !important;
+}
+.dark .bg-clay-light {
+  background-color: rgba(200, 120, 90, 0.14) !important;
+}
+.dark .bg-success-light {
+  background-color: rgba(70, 170, 110, 0.15) !important;
+}
+.dark .bg-warning-light {
+  background-color: rgba(220, 170, 60, 0.15) !important;
+}
+
+.dark .text-secondary-dark {
+  color: #cfe0b0 !important;
+}
+.dark .text-danger {
+  color: #f0a89a !important;
+}
+.dark .border-danger {
+  border-color: rgba(220, 90, 70, 0.4) !important;
+}
+.dark .border-secondary {
+  border-color: rgba(167, 200, 116, 0.4) !important;
+}
+.dark .border-primary {
+  border-color: rgba(167, 200, 116, 0.4) !important;
+}
+.dark .border-accent {
+  border-color: rgba(227, 200, 120, 0.4) !important;
+}
+
+.dark .border-gray-100,
+.dark .border-gray-200,
+.dark .border-gray-300,
+.dark .border-gray-400 {
+  border-color: var(--dm-border) !important;
+}
+
+.dark .divide-gray-100 > *,
+.dark .divide-gray-200 > *,
+.dark .divide-gray-300 > * {
+  border-color: var(--dm-border) !important;
+}
+
+.dark .ring-gray-300 {
+  --tw-ring-color: #3c5b3f;
+}
+
+.dark input,
+.dark textarea,
+.dark select {
+  background-color: var(--dm-surface-2);
+  color: #e8efe6;
+  border-color: var(--dm-border);
+}
+
+.dark input:focus,
+.dark textarea:focus,
+.dark select:focus {
+  border-color: var(--dm-brand);
+  box-shadow: 0 0 0 3px rgba(167, 200, 116, 0.25);
+}
+
+.dark input::placeholder,
+.dark textarea::placeholder {
+  color: #8a9a88;
+}
+
+.dark label {
+  color: #b6c6b4;
+}
+
+.dark thead {
+  background-color: var(--dm-surface) !important;
+  color: #8a9a88 !important;
+}
+
+.dark tbody {
+  color: #e8efe6;
+}
+
+.dark tbody tr:hover {
+  background-color: rgba(167, 200, 116, 0.06) !important;
+}
+
+.dark .btn-ghost:hover {
+  background-color: var(--dm-surface-2);
+}
+
+.dark .btn-outline:hover {
+  background-color: rgba(167, 200, 116, 0.18);
+  border-color: var(--dm-brand);
+}
+
+/* Tarjetas con profundidad y borde superior de marca */
+.dark .card {
+  background-color: var(--dm-surface) !important;
+  border-color: var(--dm-border) !important;
+  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.7);
+}
+
+.dark .card-header {
+  background-color: var(--dm-surface-2) !important;
+  border-color: var(--dm-border) !important;
+}
+
+/* Encabezados de sección con acento de marca */
+.dark .card-header h1,
+.dark .card-header h2,
+.dark .card-header h3 {
+  color: var(--dm-brand-2);
+}
+
+/* Glow de marca para elementos activos/destacados */
+.dark .ring-brand-glow,
+.dark .shadow-brand-glow {
+  box-shadow: 0 0 0 1px rgba(167, 200, 116, 0.4), 0 0 18px -2px rgba(167, 200, 116, 0.45) !important;
 }

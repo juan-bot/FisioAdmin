@@ -251,7 +251,7 @@ export default function Metrics() {
             <p className="text-sm text-gray-500">Por tipo de atención</p>
           </CardHeader>
           <CardBody>
-            <DonutChart />
+            <DonutChart segments={donutSegments} />
           </CardBody>
         </Card>
       </div>

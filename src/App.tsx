@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppProvider } from './context/AppContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { ThemeToggle } from './components/ui/ThemeToggle';
 import { Sidebar } from './components/layout/Sidebar';
 import { Footer } from './components/layout/Footer';
 import { AuthScreen } from './components/auth/AuthScreen';
@@ -146,10 +148,11 @@ function Header() {
   return (
       <header className="flex items-center justify-between lg:justify-end gap-4">
         <div className="lg:hidden pl-12">
-          <h2 className="text-xl font-bold text-primary-dark">FisioAdmin</h2>
+          <h2 className="text-xl font-bold text-primary-dark dark:text-white">FisioAdmin</h2>
         </div>
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-3 p-2 bg-white rounded-xl border border-gray-200">
+        <ThemeToggle />
+        <div className="flex items-center gap-3 p-2 bg-white rounded-xl border border-gray-200 dark:bg-[#16221a] dark:border-[#2c4730]">
           <div className="hidden sm:block text-right">
             <p className="text-sm font-medium text-gray-900">Hoy</p>
             <p className="text-xs text-gray-500">
@@ -213,9 +216,11 @@ function Root() {
 
 function App() {
   return (
-    <AuthProvider>
-      <Root />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <Root />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

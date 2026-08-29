@@ -1,5 +1,6 @@
 import { useState, FormEvent } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { ThemeToggle } from '../ui/ThemeToggle';
 
 type Mode = 'login' | 'register';
 
@@ -48,19 +49,22 @@ export function AuthScreen() {
   const labelClass = "block text-sm font-medium text-gray-700 mb-1";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4 dark:bg-gradient-to-br dark:from-[#0d130e] dark:to-[#16221a]">
       <div className="w-full max-w-md">
+        <div className="flex justify-end mb-2">
+          <ThemeToggle />
+        </div>
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary text-white text-2xl font-bold mb-3">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary text-white text-2xl font-bold mb-3 dark:shadow-lg dark:shadow-[#a7c874]/40">
             F
           </div>
-          <h1 className="text-2xl font-bold text-primary-dark">FisioAdmin</h1>
-          <p className="text-sm text-gray-500 mt-1">
-            {mode === 'login' ? 'Inicia sesión para continuar' : 'Crea tu cuenta'}
-          </p>
         </div>
+        <h1 className="text-2xl font-bold text-primary-dark dark:text-[#c2e08a]">FisioAdmin</h1>
+        <p className="text-sm text-gray-500 mt-1 dark:text-[#8a9a88]">
+          {mode === 'login' ? 'Inicia sesión para continuar' : 'Crea tu cuenta'}
+        </p>
 
-        <form onSubmit={handleSubmit} className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 shadow-sm space-y-5">
+      <form onSubmit={handleSubmit} className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 shadow-sm space-y-5 dark:bg-[#16221a] dark:border-[#2c4730] dark:shadow-2xl dark:shadow-black/60">
           {error && <div className="p-3 bg-danger-light border border-danger text-danger rounded-lg text-sm">{error}</div>}
           {authError && <div className="p-3 bg-danger-light border border-danger text-danger rounded-lg text-sm">{authError}</div>}
           {info && <div className="p-3 bg-secondary-light border border-secondary text-secondary-dark rounded-lg text-sm">{info}</div>}

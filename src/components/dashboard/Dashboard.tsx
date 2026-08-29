@@ -2,16 +2,30 @@ import { useApp } from '../../context/AppContext';
 import { Card, CardBody, CardHeader } from '../ui/Card';
 import { getStatusLabel, formatTime, formatCurrency, getAppointmentTypeLabel } from '../../utils/format';
 
+const statGradients: Record<string, string> = {
+  'bg-primary': 'dark:from-[#1c2c1e] dark:to-[#16221a] dark:shadow-lg dark:shadow-[#a7c874]/20',
+  'bg-secondary': 'dark:from-[#1c2c1e] dark:to-[#16221a] dark:shadow-lg dark:shadow-[#a7c874]/15',
+  'bg-accent': 'dark:from-[#2b2614] dark:to-[#16221a] dark:shadow-lg dark:shadow-[#e3c878]/20',
+  'bg-clay': 'dark:from-[#2b1b15] dark:to-[#16221a] dark:shadow-lg dark:shadow-[#c8785a]/20',
+};
+
+const statGlow: Record<string, string> = {
+  'bg-primary': 'dark:shadow-lg dark:shadow-[#a7c874]/50',
+  'bg-secondary': 'dark:shadow-lg dark:shadow-[#a7c874]/40',
+  'bg-accent': 'dark:shadow-lg dark:shadow-[#e3c878]/50',
+  'bg-clay': 'dark:shadow-lg dark:shadow-[#c8785a]/50',
+};
+
 function StatCard({ title, value, subtitle, icon, color }: { title: string; value: string | number; subtitle?: string; icon: string; color: string }) {
   return (
-    <Card>
+    <Card className={`dark:bg-gradient-to-br ${statGradients[color] || ''}`}>
       <CardBody className="flex items-center justify-between">
         <div>
           <p className="text-sm text-gray-500 font-medium">{title}</p>
-          <p className="mt-1 text-2xl font-bold text-gray-900">{value}</p>
+          <p className="mt-1 text-2xl font-bold text-gray-900 dark:text-[#f3f8f1]">{value}</p>
           {subtitle && <p className="mt-1 text-xs text-gray-500">{subtitle}</p>}
         </div>
-        <div className={`w-12 h-12 rounded-xl ${color} flex items-center justify-center text-white text-2xl`}>
+        <div className={`w-12 h-12 rounded-xl ${color} flex items-center justify-center text-white text-2xl dark:bg-gradient-to-br ${statGlow[color] || ''}`}>
           {icon}
         </div>
       </CardBody>
