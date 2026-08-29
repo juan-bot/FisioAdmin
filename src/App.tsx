@@ -72,6 +72,7 @@ const baseNavItems = [
   { id: 'prescriptions', label: 'Recetas', icon: icons.prescriptions },
   { id: 'progress', label: 'Progreso', icon: icons.progress },
   { id: 'metrics', label: 'Métricas', icon: icons.metrics },
+  { id: 'finanzas', label: 'Finanzas', icon: icons.finanzas },
 ];
 
 function MainContent() {
@@ -80,7 +81,7 @@ function MainContent() {
   const [viewingPatientId, setViewingPatientId] = useState<string | null>(null);
 
   const navItems = isAdmin
-    ? [...baseNavItems, { id: 'finanzas', label: 'Finanzas', icon: icons.finanzas }, { id: 'users', label: 'Usuarios', icon: icons.users }]
+    ? [...baseNavItems, { id: 'users', label: 'Usuarios', icon: icons.users }]
     : baseNavItems;
 
   const handlePatientsHeader = () => {
