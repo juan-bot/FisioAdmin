@@ -131,4 +131,15 @@ export async function deleteUserDoc(uid: string): Promise<void> {
   await deleteDoc(doc(usersCol, uid));
 }
 
+const settingsCol = collection(db, 'settings');
+
+export async function fetchBudget(): Promise<number> {
+  const snap = await getDoc(doc(settingsCol, 'budget'));
+  return snap.exists() ? (snap.data().amount as number) : 0;
+}
+
+export async function saveBudget(amount: number): Promise<void> {
+  await setDoc(doc(settingsCol, 'budget'), { amount, updatedAt: new Date().toISOString() });
+}
+
 export { serverTimestamp };

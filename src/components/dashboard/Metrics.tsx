@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card, CardBody, CardHeader } from '../ui/Card';
-import { formatCurrency } from '../../utils/format';
+import { formatCurrency, getAppointmentTypeLabel } from '../../utils/format';
 import { Patient } from '../../types';
 
 function LineChart({ data, labels, color }: { data: number[]; labels: string[]; color: string }) {
@@ -41,14 +41,8 @@ function LineChart({ data, labels, color }: { data: number[]; labels: string[]; 
   );
 }
 
-function DonutChart() {
-  const segments = [
-    { label: 'Evaluación', value: 30, color: 'var(--color-clay)', dot: 'bg-clay' },
-    { label: 'Tratamiento', value: 45, color: 'var(--color-primary)', dot: 'bg-primary' },
-    { label: 'Seguimiento', value: 15, color: 'var(--color-secondary)', dot: 'bg-secondary' },
-    { label: 'Re-evaluación', value: 10, color: 'var(--color-accent)', dot: 'bg-accent' },
-  ];
-  const total = segments.reduce((acc, s) => acc + s.value, 0);
+function DonutChart({ segments }: { segments: { label: string; value: number; color: string; dot: string }[] }) {
+  const total = segments.reduce((acc, s) => acc + s.value, 0) || 1;
 
   let cumulative = 0;
   const circles = segments.map(s => {
@@ -85,7 +79,7 @@ function DonutChart() {
         {segments.map(s => (
           <span key={s.label} className="flex items-center gap-1 text-xs text-gray-600">
             <span className={`w-2.5 h-2.5 rounded-full ${s.dot}`} />
-            {s.label} ({s.value}%)
+            {s.label} ({total ? Math.round((s.value / total) * 100) : 0}%)
           </span>
         ))}
       </div>
@@ -94,20 +88,53 @@ function DonutChart() {
 }
 
 export default function Metrics() {
-  const { patients, appointments, prescriptions, progressRecords, stats, currentTherapist } = useApp();
+  const { patients, appointments, progressRecords, stats } = useApp();
   const [timeRange, setTimeRange] = useState('month');
 
-  const monthlyPatients = [28, 35, 42, 48, 55, 62];
-  const monthlyRevenue = [42000, 45000, 48000, 51000, 47000, 48500];
-  const monthLabels = ['Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago'];
+  const months: Date[] = [];
+  const now = new Date();
+  for (let i = 5; i >= 0; i--) {
+    months.push(new Date(now.getFullYear(), now.getMonth() - i, 1));
+  }
+  const monthLabels = months.map(d => d.toLocaleDateString('es-MX', { month: 'short' }));
 
-  const weeklySessions = [28, 32, 35, 30, 38, 36, 42];
+  const monthlyPatients = months.map(d =>
+    patients.filter(p => {
+      const dt = new Date(p.createdAt);
+      return dt.getFullYear() === d.getFullYear() && dt.getMonth() === d.getMonth();
+    }).length
+  );
+
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 7);
   const weekLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  const weeklySessions = weekLabels.map((_, i) => {
+    const day = new Date(weekStart);
+    day.setDate(weekStart.getDate() + i);
+    return appointments.filter(a => {
+      const dt = new Date(a.date);
+      return dt >= weekStart && dt < weekEnd && dt.getDay() === (i + 1) % 7;
+    }).length;
+  });
 
   const appointmentTypes = appointments.reduce((acc, a) => {
     acc[a.type] = (acc[a.type] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
+
+  const typeColor: Record<string, { color: string; dot: string }> = {
+    evaluation: { color: 'var(--color-clay)', dot: 'bg-clay' },
+    treatment: { color: 'var(--color-primary)', dot: 'bg-primary' },
+    'follow-up': { color: 'var(--color-secondary)', dot: 'bg-secondary' },
+    're-evaluation': { color: 'var(--color-accent)', dot: 'bg-accent' },
+  };
+  const donutSegments = Object.entries(appointmentTypes).map(([type, value]) => ({
+    label: getAppointmentTypeLabel(type),
+    value,
+    ...(typeColor[type] || { color: 'var(--color-primary)', dot: 'bg-primary' }),
+  }));
 
   const patientWithMostProgress = progressRecords.length > 0
     ? [...new Set(progressRecords.map(r => r.patientId))].length
@@ -134,12 +161,23 @@ export default function Metrics() {
     return acc;
   }, {});
 
-  const specialists = [{
-    name: currentTherapist.name,
-    patients: 12,
-    sessions: 45,
-    rating: 4.8,
-  }];
+  const byTherapist = appointments.reduce((acc: Record<string, { sessions: number; patients: Set<string> }>, a) => {
+    if (!acc[a.therapistName]) acc[a.therapistName] = { sessions: 0, patients: new Set() };
+    acc[a.therapistName].sessions += 1;
+    acc[a.therapistName].patients.add(a.patientId);
+    return acc;
+  }, {});
+  const specialists = Object.entries(byTherapist).map(([name, data]) => ({
+    name,
+    patients: data.patients.size,
+    sessions: data.sessions,
+  }));
+
+  const totalAppointments = appointments.length || 1;
+  const completedAppointments = appointments.filter(a => a.status === 'completed').length;
+  const cancelledAppointments = appointments.filter(a => a.status === 'cancelled').length;
+  const noShowAppointments = appointments.filter(a => a.status === 'no-show').length;
+  const attendanceRate = Math.round((completedAppointments / totalAppointments) * 100);
 
   return (
     <div className="space-y-6">
@@ -170,28 +208,28 @@ export default function Metrics() {
           <CardBody>
             <p className="text-sm text-gray-500 font-medium">Pacientes Activos</p>
             <p className="text-3xl font-bold text-gray-900 mt-2">{stats.activePatients}</p>
-            <p className="text-xs text-secondary-dark mt-1">+12% este mes</p>
+            <p className="text-xs text-gray-500 mt-1">{stats.totalPatients} en total</p>
           </CardBody>
         </Card>
         <Card>
           <CardBody>
             <p className="text-sm text-gray-500 font-medium">Sesiones Completadas</p>
             <p className="text-3xl font-bold text-gray-900 mt-2">{stats.completedSessionsThisMonth}</p>
-            <p className="text-xs text-secondary-dark mt-1">Este mes</p>
+            <p className="text-xs text-gray-500 mt-1">Este mes</p>
           </CardBody>
         </Card>
         <Card>
           <CardBody>
             <p className="text-sm text-gray-500 font-medium">Promedio Dolor</p>
             <p className="text-3xl font-bold text-gray-900 mt-2">{averagePain}<span className="text-base text-gray-500">/10</span></p>
-            <p className="text-xs text-secondary-dark mt-1">↓ 0.8 respecto al mes anterior</p>
+            <p className="text-xs text-gray-500 mt-1">{progressRecords.length} registros</p>
           </CardBody>
         </Card>
         <Card>
           <CardBody>
             <p className="text-sm text-gray-500 font-medium">Tasa de Recuperación</p>
             <p className="text-3xl font-bold text-gray-900 mt-2">{Math.round(averageRecovery)}%</p>
-            <p className="text-xs text-secondary-dark mt-1">↑ Mejora general</p>
+            <p className="text-xs text-gray-500 mt-1">{progressRecords.length} evaluaciones</p>
           </CardBody>
         </Card>
       </div>
@@ -246,7 +284,7 @@ export default function Metrics() {
         <Card>
           <CardHeader>
             <h3 className="text-lg font-semibold text-gray-900">Ingresos vs Presupuesto</h3>
-            <p className="text-sm text-gray-500">Mes de agosto 2026</p>
+            <p className="text-sm text-gray-500">{now.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })}</p>
           </CardHeader>
           <CardBody>
             <div className="flex items-center justify-between mb-4">
@@ -276,30 +314,31 @@ export default function Metrics() {
         <CardHeader>
           <h3 className="text-lg font-semibold text-gray-900">Desempeño por Especialista</h3>
         </CardHeader>
-        <CardBody>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {specialists.map(s => (
-              <div key={s.name} className="p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{s.name}</p>
-                    <p className="text-xs text-gray-500">{s.sessions} sesiones este mes</p>
+          <CardBody>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {specialists.length === 0 && (
+                <p className="text-sm text-gray-500 col-span-full">No hay sesiones registradas.</p>
+              )}
+              {specialists.map(s => {
+                const maxSessions = Math.max(...specialists.map(sp => sp.sessions), 1);
+                return (
+                  <div key={s.name} className="p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">{s.name}</p>
+                        <p className="text-xs text-gray-500">{s.sessions} sesiones · {s.patients} pacientes</p>
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className="bg-primary h-2 rounded-full" style={{ width: `${(s.sessions / maxSessions) * 100}%` }} />
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <span className="text-accent">★</span>
-                    <span className="text-sm font-semibold text-gray-900">{s.rating}</span>
-                    <span className="text-xs text-gray-500">({s.patients} pacientes)</span>
-                  </div>
-                </div>
-                <div className="mt-3">
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-primary h-2 rounded-full" style={{ width: `${(s.sessions / 45) * 100}%` }} />
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardBody>
+                );
+              })}
+            </div>
+          </CardBody>
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -336,23 +375,23 @@ export default function Metrics() {
             <div className="space-y-4">
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <span className="text-sm text-gray-700">Tasa de asistencia</span>
-                <span className="text-sm font-semibold text-secondary-dark">92%</span>
+                <span className="text-sm font-semibold text-secondary-dark">{attendanceRate}%</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm text-gray-700">Tasa de re-agendamiento</span>
-                <span className="text-sm font-semibold text-warning">8%</span>
+                <span className="text-sm text-gray-700">Citas completadas</span>
+                <span className="text-sm font-semibold text-success">{completedAppointments}</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm text-gray-700">Pacientes nuevas referidos</span>
-                <span className="text-sm font-semibold text-primary">+15</span>
+                <span className="text-sm text-gray-700">Citas canceladas</span>
+                <span className="text-sm font-semibold text-warning">{cancelledAppointments}</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm text-gray-700">Satisfacción del paciente</span>
-                <span className="text-sm font-semibold text-secondary-dark">4.9/5</span>
+                <span className="text-sm text-gray-700">No asistieron</span>
+                <span className="text-sm font-semibold text-danger">{noShowAppointments}</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm text-gray-700">Duración promedio de tratamiento</span>
-                <span className="text-sm font-semibold text-gray-900">8.5 semanas</span>
+                <span className="text-sm text-gray-700">Pacientes con progreso</span>
+                <span className="text-sm font-semibold text-primary">{patientWithMostProgress}</span>
               </div>
             </div>
           </CardBody>

@@ -13,6 +13,7 @@ import Calendar from './components/appointments/Calendar';
 import Prescriptions from './components/prescriptions/Prescriptions';
 import Progress from './components/progress/Progress';
 import Metrics from './components/dashboard/Metrics';
+import { Finance } from './components/dashboard/Finance';
 
 const icons = {
   dashboard: (
@@ -55,6 +56,12 @@ const icons = {
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-2a6 6 0 0112 0v2zm0 0h6v-2a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
     </svg>
   ),
+  finanzas: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .405-3 1.5s1.343 1.5 3 1.5 3 .405 3 1.5 1.343 1.5 3 1.5M12 8c1.657 0 3-.405 3-1.5S13.343 5 12 5 9 5.405 9 6.5 10.343 8 12 8zm0 13c-2.485 0-4.5-1.567-4.5-3.5s2.015-3.5 4.5-3.5 4.5 1.567 4.5 3.5-2.015 3.5-4.5 3.5z" />
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M3 14h18" />
+    </svg>
+  ),
 };
 
 const baseNavItems = [
@@ -73,7 +80,7 @@ function MainContent() {
   const [viewingPatientId, setViewingPatientId] = useState<string | null>(null);
 
   const navItems = isAdmin
-    ? [...baseNavItems, { id: 'users', label: 'Usuarios', icon: icons.users }]
+    ? [...baseNavItems, { id: 'finanzas', label: 'Finanzas', icon: icons.finanzas }, { id: 'users', label: 'Usuarios', icon: icons.users }]
     : baseNavItems;
 
   const handlePatientsHeader = () => {
@@ -111,6 +118,8 @@ function MainContent() {
         return <Progress />;
       case 'metrics':
         return <Metrics />;
+      case 'finanzas':
+        return <Finance />;
       case 'users':
         return <Users />;
       default:

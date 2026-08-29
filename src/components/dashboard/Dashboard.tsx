@@ -19,28 +19,37 @@ function StatCard({ title, value, subtitle, icon, color }: { title: string; valu
   );
 }
 
-function ProgressChart() {
-  const data = [
-    { month: 'Mar', patients: 28 },
-    { month: 'Abr', patients: 35 },
-    { month: 'May', patients: 42 },
-    { month: 'Jun', patients: 48 },
-    { month: 'Jul', patients: 55 },
-    { month: 'Ago', patients: 62 },
-  ];
+function lastSixMonths() {
+  const months: Date[] = [];
+  const now = new Date();
+  for (let i = 5; i >= 0; i--) {
+    months.push(new Date(now.getFullYear(), now.getMonth() - i, 1));
+  }
+  return months;
+}
 
-  const max = Math.max(...data.map(d => d.patients));
-  const monthlyRevenue = [42000, 45000, 48000, 51000, 47000, 48500];
+function ProgressChart() {
+  const { patients } = useApp();
+  const months = lastSixMonths();
+  const data = months.map(d => ({
+    month: d.toLocaleDateString('es-MX', { month: 'short' }),
+    patients: patients.filter(p => {
+      const dt = new Date(p.createdAt);
+      return dt.getFullYear() === d.getFullYear() && dt.getMonth() === d.getMonth();
+    }).length,
+  }));
+
+  const max = Math.max(...data.map(d => d.patients), 1);
 
   return (
     <Card>
       <CardHeader>
         <h3 className="text-lg font-semibold text-gray-900">Pacientes por Mes</h3>
-        <p className="text-sm text-gray-500">Últimos 6 meses</p>
+        <p className="text-sm text-gray-500">Registrados en los últimos 6 meses</p>
       </CardHeader>
       <CardBody>
         <div className="flex items-end gap-4 h-48">
-          {data.map((d, i) => (
+          {data.map((d) => (
             <div key={d.month} className="flex-1 flex flex-col items-center gap-2">
               <span className="text-xs text-gray-600 font-medium">{d.patients}</span>
               <div
@@ -57,22 +66,26 @@ function ProgressChart() {
 }
 
 function RevenueChart() {
-  const data = [
-    { month: 'Mar', revenue: 42000 },
-    { month: 'Abr', revenue: 45000 },
-    { month: 'May', revenue: 48000 },
-    { month: 'Jun', revenue: 51000 },
-    { month: 'Jul', revenue: 47000 },
-    { month: 'Ago', revenue: 48500 },
-  ];
+  const { appointments } = useApp();
+  const months = lastSixMonths();
+  const data = months.map(d => ({
+    month: d.toLocaleDateString('es-MX', { month: 'short' }),
+    revenue: appointments
+      .filter(a => {
+        const dt = new Date(a.date);
+        return dt.getFullYear() === d.getFullYear() && dt.getMonth() === d.getMonth() &&
+          a.status !== 'cancelled' && a.status !== 'no-show';
+      })
+      .reduce((sum, a) => sum + (a.amount || 0), 0),
+  }));
 
-  const max = Math.max(...data.map(d => d.revenue));
+  const max = Math.max(...data.map(d => d.revenue), 1);
 
   return (
     <Card>
       <CardHeader>
         <h3 className="text-lg font-semibold text-gray-900">Ingresos Mensuales</h3>
-        <p className="text-sm text-gray-500">Últimos 6 meses</p>
+        <p className="text-sm text-gray-500">Cobrado en los últimos 6 meses</p>
       </CardHeader>
       <CardBody>
         <div className="flex items-end gap-4 h-48">

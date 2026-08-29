@@ -180,6 +180,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const revenueThisMonth = chargedAppointments.reduce((sum, a) => sum + (a.amount || 0), 0);
   const completedSessionsThisMonth = chargedAppointments.length;
 
+  const averageProgressScore = progressRecords.length > 0
+    ? Math.round(
+        progressRecords.reduce(
+          (acc, r) => acc + (r.mobilityScore + r.strengthScore + r.functionalScore) / 3,
+          0
+        ) / progressRecords.length
+      )
+    : 0;
+
   const stats: DashboardStats = {
     totalPatients: patients.length,
     activePatients: patients.filter(p => p.status === 'active').length,
@@ -188,7 +197,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     pendingPrescriptions,
     completedSessionsThisMonth,
     revenueThisMonth,
-    averageProgressScore: 72,
+    averageProgressScore,
   };
 
   return (
