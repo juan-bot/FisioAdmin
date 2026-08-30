@@ -1,5 +1,6 @@
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Prescription, Treatment } from '../../types';
@@ -20,7 +21,24 @@ const emptyTreatment: Omit<Treatment, 'id'> = {
 };
 
 export function PrescriptionForm({ prescription, onClose }: PrescriptionFormProps) {
-  const { patients, addPrescription, updatePrescription, currentTherapist } = useApp();
+  const { patients, addPrescription, updatePrescription } = useApp();
+  const { profile, refreshProfile } = useAuth();
+
+  const getTherapistName = (p: typeof profile) => {
+    if (!p) return 'Terapeuta';
+    if (p.displayName && !p.displayName.includes('@') && p.displayName.trim().split(/\s+/).length > 1) {
+      return p.displayName;
+    }
+    return p.email?.split('@')[0] || 'Terapeuta';
+  };
+
+  const therapistId = profile?.uid || '';
+  const therapistName = getTherapistName(profile);
+
+  useEffect(() => {
+    refreshProfile();
+  }, [refreshProfile]);
+
   const [form, setForm] = useState(() => ({
     patientId: prescription?.patientId || '',
     date: prescription?.date || new Date().toISOString().split('T')[0],
@@ -72,8 +90,8 @@ export function PrescriptionForm({ prescription, onClose }: PrescriptionFormProp
     const prescriptionData = {
       patientId: form.patientId,
       patientName: patient ? `${patient.firstName} ${patient.lastName}` : '',
-      therapistId: currentTherapist.id,
-      therapistName: currentTherapist.name,
+      therapistId,
+      therapistName,
       date: form.date,
       diagnosis: form.diagnosis,
       treatments: treatments.map(t => ({

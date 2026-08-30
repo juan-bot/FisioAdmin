@@ -71,19 +71,19 @@ export function AuthScreen() {
 
           {mode === 'register' && (
             <div>
-              <label className={labelClass}>Nombre completo</label>
-              <input className={inputClass} value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="Tu nombre" />
+              <label className={labelClass}>Nombre completo <span className="text-danger">*</span></label>
+              <input required className={inputClass} value={displayName} onChange={e => setDisplayName(e.target.value)} placeholder="Tu nombre" />
             </div>
           )}
 
           <div>
-            <label className={labelClass}>Correo electrónico</label>
-            <input type="email" className={inputClass} value={email} onChange={e => setEmail(e.target.value)} placeholder="correo@ejemplo.com" />
+            <label className={labelClass}>Correo electrónico <span className="text-danger">*</span></label>
+            <input required type="email" className={inputClass} value={email} onChange={e => setEmail(e.target.value)} placeholder="correo@ejemplo.com" />
           </div>
 
           <div>
-            <label className={labelClass}>Contraseña</label>
-            <input type="password" className={inputClass} value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
+            <label className={labelClass}>Contraseña <span className="text-danger">*</span></label>
+            <input required type="password" className={inputClass} value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
           </div>
 
           <button

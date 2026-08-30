@@ -11,6 +11,8 @@ import {
   orderBy,
   limit,
   serverTimestamp,
+  writeBatch,
+  where,
 } from 'firebase/firestore';
 import { db } from './config';
 import {
@@ -128,7 +130,35 @@ export async function updateUserRole(uid: string, role: UserProfile['role']): Pr
 }
 
 export async function deleteUserDoc(uid: string): Promise<void> {
-  await deleteDoc(doc(usersCol, uid));
+  const batch = writeBatch(db);
+
+  const prescriptionsSnap = await getDocs(query(prescriptionsCol, where('therapistId', '==', uid)));
+  prescriptionsSnap.docs.forEach(d => batch.delete(doc(prescriptionsCol, d.id)));
+
+  const appointmentsSnap = await getDocs(query(appointmentsCol, where('therapistId', '==', uid)));
+  appointmentsSnap.docs.forEach(d => batch.delete(doc(appointmentsCol, d.id)));
+
+  const progressSnap = await getDocs(query(progressCol, where('therapistId', '==', uid)));
+  progressSnap.docs.forEach(d => batch.delete(doc(progressCol, d.id)));
+
+  batch.delete(doc(usersCol, uid));
+
+  await batch.commit();
+}
+
+export async function disableUser(uid: string): Promise<void> {
+  await updateDoc(doc(usersCol, uid), { disabled: true });
+}
+
+export async function enableUser(uid: string): Promise<void> {
+  await updateDoc(doc(usersCol, uid), { disabled: false });
+}
+
+export async function softDeleteUser(uid: string): Promise<void> {
+  await updateDoc(doc(usersCol, uid), { 
+    deletedAt: new Date().toISOString(),
+    disabled: true 
+  });
 }
 
 const settingsCol = collection(db, 'settings');

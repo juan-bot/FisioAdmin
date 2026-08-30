@@ -121,7 +121,9 @@ export interface UserProfile {
   displayName: string;
   role: UserRole;
   approved: boolean;
+  disabled: boolean;
   createdAt: string;
+  deletedAt?: string;
   password?: string;
 }
 

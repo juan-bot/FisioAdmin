@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Patient, Appointment, Prescription, ProgressRecord, DashboardStats } from '../types';
+import { Patient, Appointment, Prescription, ProgressRecord, DashboardStats, UserProfile } from '../types';
 import { useAuth } from './AuthContext';
 import {
   fetchPatients,
@@ -89,8 +89,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   }, [status]);
 
+  const getTherapistName = (profile: UserProfile | null) => {
+    if (!profile) return CURRENT_THERAPIST.name;
+    if (profile.displayName && !profile.displayName.includes('@')) {
+      return profile.displayName;
+    }
+    return profile.email?.split('@')[0] || 'Terapeuta';
+  };
+
   const currentTherapist = profile
-    ? { id: profile.uid, name: profile.displayName || profile.email }
+    ? { id: profile.uid, name: getTherapistName(profile) }
     : CURRENT_THERAPIST;
 
   const addPatient = async (data: Omit<Patient, 'id' | 'createdAt' | 'updatedAt'>) => {

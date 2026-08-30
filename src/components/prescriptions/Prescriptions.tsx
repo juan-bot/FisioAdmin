@@ -1,11 +1,19 @@
 import { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { Card, CardBody, CardHeader } from '../ui/Card';
+import { Card, CardBody } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { PrescriptionForm } from './PrescriptionForm';
 import { formatDate } from '../../utils/format';
 import { Prescription } from '../../types';
+import { exportPrescriptionToPDF } from '../../utils/exportPrescription';
+
+const getTherapistDisplayName = (prescription: Prescription, currentTherapist: { id: string; name: string }) => {
+  if (prescription.therapistId === currentTherapist.id) {
+    return currentTherapist.name;
+  }
+  return prescription.therapistName;
+};
 
 export default function Prescriptions() {
   const { prescriptions, updatePrescription, deletePrescription } = useApp();
@@ -196,6 +204,16 @@ export default function Prescriptions() {
                   Marcar como Completada
                 </Button>
               )}
+              <Button 
+                variant="outline" 
+                onClick={() => exportPrescriptionToPDF(viewingPrescription)}
+                className="flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Exportar PDF
+              </Button>
               <Button variant="outline" onClick={() => { setEditingPrescription(viewingPrescription); setShowForm(true); setViewingPrescription(null); }}>
                 Editar Receta
               </Button>

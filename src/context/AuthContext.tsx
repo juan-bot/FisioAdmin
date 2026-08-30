@@ -25,6 +25,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, displayName: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -46,18 +47,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       try {
         let prof = await fetchUserProfile(fbUser.uid);
-        if (!prof) {
-          const first = await isFirstUser();
-          prof = {
-            uid: fbUser.uid,
-            email: fbUser.email || '',
-            displayName: fbUser.displayName || (fbUser.email ? fbUser.email.split('@')[0] : 'Usuario'),
-            role: first ? 'admin' : 'pending',
-            approved: first,
-            createdAt: new Date().toISOString(),
-          };
-          await createUserProfile(prof);
+        
+        if (!prof || prof.deletedAt) {
+          await signOut(auth);
+          setProfile(null);
+          setStatus('unauthenticated');
+          setError('Tu cuenta ha sido eliminada. Contacta al administrador.');
+          return;
         }
+        
+        if (prof.disabled) {
+          await signOut(auth);
+          setProfile(null);
+          setStatus('unauthenticated');
+          setError('Tu cuenta está deshabilitada. Contacta al administrador.');
+          return;
+        }
+        
         if (!prof.approved) {
           setProfile(prof);
           setStatus('pending');
@@ -98,10 +104,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signOut(auth);
   };
 
+  const refreshProfile = async () => {
+    if (user) {
+      const prof = await fetchUserProfile(user.uid);
+      if (prof) setProfile(prof);
+    }
+  };
+
   const isAdmin = status === 'authenticated' && profile?.role === 'admin';
 
   return (
-    <AuthContext.Provider value={{ user, profile, status, isAdmin, error, login, register, logout }}>
+    <AuthContext.Provider value={{ user, profile, status, isAdmin, error, login, register, logout, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
