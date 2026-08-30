@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { fetchUsers, approveUser, updateUserRole, deleteUserDoc, disableUser, enableUser, softDeleteUser, UserProfile } from '../../firebase/db';
+import { UserMetrics } from '../dashboard/UserMetrics';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 
@@ -14,6 +15,7 @@ export function Users() {
   const [roleConfirm, setRoleConfirm] = useState<{ user: UserProfile; newRole: UserProfile['role'] } | null>(null);
   const [disableConfirm, setDisableConfirm] = useState<UserProfile | null>(null);
   const [enableConfirm, setEnableConfirm] = useState<UserProfile | null>(null);
+  const [selectedUserMetricsUid, setSelectedUserMetricsUid] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -157,45 +159,57 @@ export function Users() {
                     <td className="px-4 py-3 text-gray-600">{u.email}</td>
                     <td className="px-4 py-3"><RoleSelect u={u} onChange={handleRole} /></td>
                     <td className="px-4 py-3"><StatusBadge approved={u.approved} disabled={u.disabled} /></td>
-                    <td className="px-4 py-3 text-right whitespace-nowrap">
-                      {!u.approved && (
-                        <button
-                          onClick={() => handleApprove(u)}
-                          className="text-sm text-primary hover:underline font-medium mr-3"
-                        >
-                          Aprobar
-                        </button>
-                      )}
-                      {!u.disabled && u.uid !== profile?.uid && (
-                        <button
-                          onClick={() => handleDisable(u)}
-                          className="text-sm text-secondary hover:underline font-medium mr-3"
-                        >
-                          Deshabilitar
-                        </button>
-                      )}
-                      {u.disabled && u.uid !== profile?.uid && (
-                        <button
-                          onClick={() => handleEnable(u)}
-                          className="text-sm text-secondary hover:underline font-medium mr-3"
-                        >
-                          Habilitar
-                        </button>
-                      )}
-                      {u.uid !== profile?.uid && (
-                        <button
-                          onClick={() => handleDelete(u)}
-                          className="text-sm text-danger hover:underline font-medium"
-                        >
-                          Eliminar
-                        </button>
-                      )}
-                    </td>
+<td className="px-4 py-3 text-right whitespace-nowrap">
+                        {!u.approved && (
+                          <button
+                            onClick={() => handleApprove(u)}
+                            className="text-sm text-primary hover:underline font-medium mr-3"
+                          >
+                            Aprobar
+                          </button>
+                        )}
+                        {!u.disabled && u.uid !== profile?.uid && (
+                          <button
+                            onClick={() => handleDisable(u)}
+                            className="text-sm text-secondary hover:underline font-medium mr-3"
+                          >
+                            Deshabilitar
+                          </button>
+                        )}
+                        {u.disabled && u.uid !== profile?.uid && (
+                          <button
+                            onClick={() => handleEnable(u)}
+                            className="text-sm text-secondary hover:underline font-medium mr-3"
+                          >
+                            Habilitar
+                          </button>
+                        )}
+                        {u.uid !== profile?.uid && (
+                          <button
+                            onClick={() => handleDelete(u)}
+                            className="text-sm text-danger hover:underline font-medium mr-3"
+                          >
+                            Eliminar
+                          </button>
+                        )}
+                        {u.role === 'therapist' && (
+                          <button
+                            onClick={() => setSelectedUserMetricsUid(u.uid)}
+                            className="text-sm text-info hover:underline font-medium mr-3"
+                          >
+                            Ver Métricas
+                          </button>
+                        )}
+                      </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+
+          {selectedUserMetricsUid && (
+            <UserMetrics therapistId={selectedUserMetricsUid} />
+          )}
 
           <div className="sm:hidden space-y-3">
             {users.map(u => (
@@ -211,7 +225,7 @@ export function Users() {
                   <span className="text-xs text-gray-500">Rol</span>
                   <RoleSelect u={u} onChange={handleRole} />
                 </div>
-                <div className="flex gap-2 pt-1">
+<div className="flex gap-2 pt-1">
                   {!u.approved && (
                     <button
                       onClick={() => handleApprove(u)}
@@ -242,6 +256,14 @@ export function Users() {
                       className="flex-1 py-2 border border-danger text-danger text-sm font-medium rounded-lg hover:bg-danger-light transition-colors"
                     >
                       Eliminar
+                    </button>
+                  )}
+                  {u.role === 'therapist' && (
+                    <button
+                      onClick={() => setSelectedUserMetricsUid(u.uid)}
+                      className="flex-1 py-2 bg-info hover:bg-info-hover text-white text-sm font-medium rounded-lg transition-colors"
+                    >
+                      Ver Métricas
                     </button>
                   )}
                 </div>
