@@ -5,6 +5,7 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   User,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import { auth } from '../firebase/config';
 import {
@@ -13,6 +14,8 @@ import {
   isFirstUser,
   UserProfile,
 } from '../firebase/db';
+import { db } from '../firebase/config';
+import { doc, updateDoc, query, where, limit, getDocs } from 'firebase/firestore';
 
 export type AuthStatus = 'loading' | 'unauthenticated' | 'pending' | 'authenticated';
 
@@ -48,12 +51,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         let prof = await fetchUserProfile(fbUser.uid);
         
-        if (!prof || prof.deletedAt) {
-          await signOut(auth);
-          setProfile(null);
-          setStatus('unauthenticated');
-          setError('Tu cuenta ha sido eliminada. Contacta al administrador.');
-          return;
+        if (!prof) {
+          const first = await isFirstUser();
+          prof = {
+            uid: fbUser.uid,
+            email: fbUser.email || '',
+            displayName: fbUser.displayName || (fbUser.email ? fbUser.email.split('@')[0] : 'Usuario'),
+            role: first ? 'admin' : 'pending',
+            approved: first,
+            disabled: false,
+            createdAt: new Date().toISOString(),
+          };
+          await createUserProfile(prof);
+        }
+        
+        if (prof.deletedAt) {
+          // Reactivate deleted account on sign-in (after password reset)
+          await updateDoc(doc(db, 'users', fbUser.uid), {
+            deletedAt: null,
+            disabled: false,
+            approved: false,
+            role: 'pending',
+            updatedAt: new Date().toISOString(),
+          });
+          prof.deletedAt = undefined;
+          prof.disabled = false;
+          prof.approved = false;
+          prof.role = 'pending';
         }
         
         if (prof.disabled) {
@@ -86,18 +110,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (email: string, password: string, displayName: string) => {
-    const cred = await createUserWithEmailAndPassword(auth, email, password);
-    const first = await isFirstUser();
-    const prof: UserProfile = {
-      uid: cred.user.uid,
-      email,
-      displayName: displayName || email.split('@')[0],
-      role: first ? 'admin' : 'pending',
-      approved: first,
-      createdAt: new Date().toISOString(),
-      password,
-    };
-    await createUserProfile(prof);
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      const first = await isFirstUser();
+      const prof: UserProfile = {
+        uid: cred.user.uid,
+        email,
+        displayName: displayName || email.split('@')[0],
+        role: first ? 'admin' : 'pending',
+        approved: first,
+        disabled: false,
+        createdAt: new Date().toISOString(),
+        password,
+      };
+      await createUserProfile(prof);
+    } catch (err: any) {
+      if (err.code === 'auth/email-already-in-use') {
+        // Check if there's a deleted profile in Firestore
+        const usersSnap = await getDocs(query(usersCol, where('email', '==', email), limit(1)));
+        if (!usersSnap.empty) {
+          const prof = usersSnap.docs[0].data() as UserProfile;
+          if (prof.deletedAt) {
+            // Send password reset email so user can set new password
+            await sendPasswordResetEmail(auth, email);
+            throw new Error('Esta cuenta fue eliminada. Se ha enviado un email para restablecer tu contraseña. Revisa tu bandeja de entrada y usa el enlace para entrar; tu cuenta se reactivará automáticamente.');
+          }
+        }
+      }
+      throw err;
+    }
   };
 
   const logout = async () => {

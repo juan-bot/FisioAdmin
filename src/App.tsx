@@ -131,12 +131,12 @@ function MainContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       <Sidebar navItems={navItems} activeTab={activeTab} onTabChange={handleTabChange} />
-      <main className="lg:pl-64 pt-14 lg:pt-0">
-        <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+      <main className="lg:pl-64 pt-14 lg:pt-0 flex-1 flex flex-col">
+        <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex-1 flex flex-col">
           <Header />
-          <div className="mt-6">{renderContent()}</div>
+          <div className="mt-6 flex-1">{renderContent()}</div>
           <Footer />
         </div>
       </main>
