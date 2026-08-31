@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
+import { fetchAppointmentsByTherapist } from '../../firebase/db';
 import { Card, CardBody, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import {
@@ -11,15 +12,40 @@ const COLORS = ['#2563eb', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'
 
 type TimeRange = 'week' | 'month' | 'year' | 'all';
 
+function parseAmount(val: any): number {
+  if (val == null) return 0;
+  const n = parseFloat(String(val));
+  return isNaN(n) ? 0 : n;
+}
+
 export function UserMetrics({ therapistId }: { therapistId: string }) {
-  const { appointments, patients } = useApp();
+  const { patients } = useApp();
   const [timeRange, setTimeRange] = useState<TimeRange>('month');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshTick, setRefreshTick] = useState(0);
+
+  const loadAppointments = async () => {
+    setLoading(true);
+    try {
+      const data = await fetchAppointmentsByTherapist(therapistId);
+      setAppointments(data);
+    } catch (error) {
+      console.error('Error loading appointments:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAppointments();
+  }, [therapistId, refreshTick]);
 
   const filteredAppointments = useMemo(() => {
     let filtered = (appointments || []).filter(
-      (a: any) => a.therapistId === therapistId && a.status === 'completed'
+      (a: any) => a.status !== 'cancelled' && a.status !== 'no-show'
     );
 
     const now = new Date();
@@ -55,12 +81,12 @@ export function UserMetrics({ therapistId }: { therapistId: string }) {
     });
 
     return filtered;
-  }, [appointments, therapistId, timeRange, startDate, endDate]);
+  }, [appointments, timeRange, startDate, endDate]);
 
   const metrics = useMemo(() => {
-    const totalSales = filteredAppointments.reduce((sum, a) => sum + parseFloat(String(a.amount || 0)), 0);
+    const totalSales = filteredAppointments.reduce((sum, a) => sum + parseAmount(a.amount), 0);
     const totalAppointments = filteredAppointments.length;
-    const uniquePatients = new Set(filteredAppointments.map((a) => a.patientId)).size;
+    const uniquePatients = new Set(filteredAppointments.map((a: any) => a.patientId)).size;
     return { totalSales, totalAppointments, uniquePatients };
   }, [filteredAppointments]);
 
@@ -82,7 +108,7 @@ export function UserMetrics({ therapistId }: { therapistId: string }) {
         default:
           key = date.toLocaleDateString('es-MX', { month: 'short', year: 'numeric' });
       }
-      grouped[key] = (grouped[key] || 0) + parseFloat(String(a.amount || 0));
+      grouped[key] = (grouped[key] || 0) + parseAmount(a.amount);
     });
     return Object.entries(grouped).map(([name, value]) => ({ name, value: Math.round(value) }));
   }, [filteredAppointments, timeRange]);
@@ -123,7 +149,23 @@ export function UserMetrics({ therapistId }: { therapistId: string }) {
     ].filter((d) => d.value > 0);
   }, [filteredAppointments, patients]);
 
-  const totalPatientsUnique = new Set(filteredAppointments.map((a: any) => a.patientId)).size;
+  const totalPatientsUnique = useMemo(() => {
+    return new Set(filteredAppointments.map((a: any) => a.patientId)).size;
+  }, [filteredAppointments]);
+
+  const handleRefresh = () => {
+    setRefreshTick(t => t + 1);
+  };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardBody>
+          <p className="text-center py-8 text-gray-500">Cargando métricas...</p>
+        </CardBody>
+      </Card>
+    );
+  }
 
   return (
     <Card className="space-y-6">
@@ -158,6 +200,11 @@ export function UserMetrics({ therapistId }: { therapistId: string }) {
                 />
               </>
             )}
+            <Button variant="ghost" size="sm" onClick={handleRefresh}>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </Button>
           </div>
         </div>
       </CardHeader>
@@ -166,10 +213,10 @@ export function UserMetrics({ therapistId }: { therapistId: string }) {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <div className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl border border-primary/20">
             <p className="text-sm text-gray-500 font-medium">Ventas Totales</p>
-            <p className="text-2xl font-bold text-primary-dark mt-1">{metrics.totalSales?.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' }) || '$0'}</p>
+            <p className="text-2xl font-bold text-primary-dark mt-1">{metrics.totalSales > 0 ? metrics.totalSales.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' }) : '$0'}</p>
           </div>
           <div className="p-4 bg-gradient-to-br from-secondary/10 to-secondary/5 rounded-xl border border-secondary/20">
-            <p className="text-sm text-gray-500 font-medium">Citas Completadas</p>
+            <p className="text-sm text-gray-500 font-medium">Citas</p>
             <p className="text-2xl font-bold text-gray-900 mt-1">{metrics.totalAppointments}</p>
           </div>
           <div className="p-4 bg-gradient-to-br from-accent/10 to-accent/5 rounded-xl border border-accent/20">
@@ -178,61 +225,67 @@ export function UserMetrics({ therapistId }: { therapistId: string }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div>
-            <h4 className="text-sm font-semibold text-gray-700 mb-3">Ventas por período</h4>
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <ResponsiveContainer width="100%" height={280}>
-                <AreaChart data={salesByPeriod}>
-                  <defs>
-                    <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-30} textAnchor="end" height={60} />
-                  <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `$${v}`} />
-                  <Tooltip formatter={(value: number) => [`$${value}`, 'Ventas']} contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }} />
-                  <Area type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={2} fillOpacity={1} fill="url(#colorSales)" />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+        {filteredAppointments.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            No hay citas en el período seleccionado.
           </div>
-
-          <div>
-            <h4 className="text-sm font-semibold text-gray-700 mb-3">Citas por período</h4>
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={appointmentsByPeriod}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-30} textAnchor="end" height={60} />
-                  <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                  <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }} />
-                  <Bar dataKey="value" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          {patientGenderData.length > 0 && (
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
-              <h4 className="text-sm font-semibold text-gray-700 mb-3">Distribución por género</h4>
+              <h4 className="text-sm font-semibold text-gray-700 mb-3">Ventas por período</h4>
               <div className="bg-white rounded-xl border border-gray-200 p-4">
                 <ResponsiveContainer width="100%" height={280}>
-                  <PieChart>
-                    <Pie data={patientGenderData} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}>
-                      {patientGenderData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
+                  <AreaChart data={salesByPeriod}>
+                    <defs>
+                      <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-30} textAnchor="end" height={60} />
+                    <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `$${v}`} />
+                    <Tooltip formatter={(value: number) => [`$${value}`, 'Ventas']} contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }} />
+                    <Area type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={2} fillOpacity={1} fill="url(#colorSales)" />
+                  </AreaChart>
                 </ResponsiveContainer>
               </div>
             </div>
-          )}
-        </div>
+
+            <div>
+              <h4 className="text-sm font-semibold text-gray-700 mb-3">Citas por período</h4>
+              <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={appointmentsByPeriod}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-30} textAnchor="end" height={60} />
+                    <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                    <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid #e5e7eb' }} />
+                    <Bar dataKey="value" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {patientGenderData.length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Distribución por género</h4>
+                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                  <ResponsiveContainer width="100%" height={280}>
+                    <PieChart>
+                      <Pie data={patientGenderData} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}>
+                        {patientGenderData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </CardBody>
     </Card>
   );

@@ -52,6 +52,11 @@ export async function fetchAppointments(): Promise<Appointment[]> {
   return snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Appointment, 'id'>) }));
 }
 
+export async function fetchAppointmentsByTherapist(therapistId: string): Promise<Appointment[]> {
+  const snap = await getDocs(query(appointmentsCol, where('therapistId', '==', therapistId)));
+  return snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Appointment, 'id'>) }));
+}
+
 export async function createAppointment(data: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
   const ref = await addDoc(appointmentsCol, { ...data, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
   return ref.id;
