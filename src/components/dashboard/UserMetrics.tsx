@@ -32,8 +32,7 @@ export function UserMetrics({ therapistId }: { therapistId: string }) {
     try {
       const data = await fetchAppointmentsByTherapist(therapistId);
       setAppointments(data);
-    } catch (error) {
-      console.error('Error loading appointments:', error);
+    } catch {
     } finally {
       setLoading(false);
     }
