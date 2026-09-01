@@ -1,6 +1,16 @@
+import { useMemo, useCallback, memo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card, CardBody, CardHeader } from '../ui/Card';
 import { getStatusLabel, formatTime, formatCurrency, getAppointmentTypeLabel } from '../../utils/format';
+
+const LAST_SIX_MONTHS: Date[] = (() => {
+  const months: Date[] = [];
+  const now = new Date();
+  for (let i = 5; i >= 0; i--) {
+    months.push(new Date(now.getFullYear(), now.getMonth() - i, 1));
+  }
+  return months;
+})();
 
 const statGradients: Record<string, string> = {
   'bg-primary': 'dark:from-[#1c2c1e] dark:to-[#16221a] dark:shadow-lg dark:shadow-[#a7c874]/20',
@@ -16,7 +26,7 @@ const statGlow: Record<string, string> = {
   'bg-clay': 'dark:shadow-lg dark:shadow-[#c8785a]/50',
 };
 
-function StatCard({ title, value, subtitle, icon, color }: { title: string; value: string | number; subtitle?: string; icon: string; color: string }) {
+const StatCard = memo(function StatCard({ title, value, subtitle, icon, color }: { title: string; value: string | number; subtitle?: string; icon: string; color: string }) {
   return (
     <Card className={`dark:bg-gradient-to-br ${statGradients[color] || ''}`}>
       <CardBody className="flex items-center justify-between">
@@ -31,27 +41,22 @@ function StatCard({ title, value, subtitle, icon, color }: { title: string; valu
       </CardBody>
     </Card>
   );
-}
+});
 
 function lastSixMonths() {
-  const months: Date[] = [];
-  const now = new Date();
-  for (let i = 5; i >= 0; i--) {
-    months.push(new Date(now.getFullYear(), now.getMonth() - i, 1));
-  }
-  return months;
+  return LAST_SIX_MONTHS;
 }
 
-function ProgressChart() {
+const ProgressChart = memo(function ProgressChart() {
   const { patients } = useApp();
   const months = lastSixMonths();
-  const data = months.map(d => ({
+  const data = useMemo(() => months.map(d => ({
     month: d.toLocaleDateString('es-MX', { month: 'short' }),
     patients: patients.filter(p => {
       const dt = new Date(p.createdAt);
       return dt.getFullYear() === d.getFullYear() && dt.getMonth() === d.getMonth();
     }).length,
-  }));
+  })), [months, patients]);
 
   const max = Math.max(...data.map(d => d.patients), 1);
 
@@ -77,12 +82,12 @@ function ProgressChart() {
       </CardBody>
     </Card>
   );
-}
+});
 
-function RevenueChart() {
+const RevenueChart = memo(function RevenueChart() {
   const { appointments } = useApp();
   const months = lastSixMonths();
-  const data = months.map(d => ({
+  const data = useMemo(() => months.map(d => ({
     month: d.toLocaleDateString('es-MX', { month: 'short' }),
     revenue: appointments
       .filter(a => {
@@ -91,7 +96,7 @@ function RevenueChart() {
           a.status !== 'cancelled' && a.status !== 'no-show';
       })
       .reduce((sum, a) => sum + (a.amount || 0), 0),
-  }));
+  })), [months, appointments]);
 
   const max = Math.max(...data.map(d => d.revenue), 1);
 
@@ -117,23 +122,31 @@ function RevenueChart() {
       </CardBody>
     </Card>
   );
-}
+});
 
 export default function Dashboard({ onNavigate }: { onNavigate: (tab: string) => void }) {
   const { appointments, patients, stats } = useApp();
 
-  const todayAppointments = appointments
-    .filter(a => a.date === new Date().toISOString().split('T')[0])
-    .sort((a, b) => a.startTime.localeCompare(b.startTime));
+  const todayISO = useMemo(() => new Date().toISOString().split('T')[0], []);
 
-  const recentPatients = patients.slice(0, 5);
+  const todayAppointments = useMemo(() =>
+    appointments
+      .filter(a => a.date === todayISO)
+      .sort((a, b) => a.startTime.localeCompare(b.startTime)),
+    [appointments, todayISO]
+  );
 
-  const upcomingAppointments = todayAppointments.filter(a => a.status === 'scheduled' || a.status === 'confirmed');
+  const recentPatients = useMemo(() => patients.slice(0, 5), [patients]);
 
-  const appointmentsByType = todayAppointments.reduce((acc, a) => {
-    acc[a.type] = (acc[a.type] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const appointmentsByType = useMemo(() =>
+    todayAppointments.reduce((acc, a) => {
+      acc[a.type] = (acc[a.type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>),
+    [todayAppointments]
+  );
+
+  const handleNavigateAppointments = useCallback(() => onNavigate('appointments'), [onNavigate]);
 
   return (
     <div className="space-y-6">
@@ -143,7 +156,7 @@ export default function Dashboard({ onNavigate }: { onNavigate: (tab: string) =>
           <p className="text-gray-500">Resumen general de la clínica y citas de hoy</p>
         </div>
         <button
-          onClick={() => onNavigate('appointments')}
+          onClick={handleNavigateAppointments}
           className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover font-medium"
         >
           + Nueva Cita

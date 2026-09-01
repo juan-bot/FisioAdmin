@@ -1,39 +1,40 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card, CardBody, CardHeader } from '../ui/Card';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { PatientForm } from './PatientForm';
-import { Patient, Appointment } from '../../types';
+import { Patient } from '../../types';
 import { getStatusLabel, getStatusColor, formatDate } from '../../utils/format';
 
 export default function Patients({ onViewPatient }: { onViewPatient: (id: string) => void }) {
-  const { patients, appointments, deletePatient, updatePatient } = useApp();
+  const { patients, appointments, deletePatient } = useApp();
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [deleteConfirm, setDeleteConfirm] = useState<Patient | null>(null);
 
-  const filteredPatients = patients.filter(p => {
-    const matchesSearch = `${p.firstName} ${p.lastName} ${p.email} ${p.phone}`.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || p.status === filterStatus;
-    return matchesSearch && matchesStatus;
-  });
+  const appointmentCountMap = useMemo(() => {
+    const map = new Map<string, number>();
+    appointments.forEach(a => {
+      map.set(a.patientId, (map.get(a.patientId) || 0) + 1);
+    });
+    return map;
+  }, [appointments]);
 
-  const getPatientAppointmentCount = (patientId: string) => {
-    return appointments.filter(a => a.patientId === patientId).length;
-  };
+  const filteredPatients = useMemo(() => {
+    return patients.filter(p => {
+      const matchesSearch = `${p.firstName} ${p.lastName} ${p.email} ${p.phone}`.toLowerCase().includes(search.toLowerCase());
+      const matchesStatus = filterStatus === 'all' || p.status === filterStatus;
+      return matchesSearch && matchesStatus;
+    });
+  }, [patients, search, filterStatus]);
 
-  const handleEdit = (patient: Patient) => {
-    setEditingPatient(patient);
-    setShowForm(true);
-  };
-
-  const handleDelete = (id: string) => {
+  const handleDelete = useCallback((id: string) => {
     deletePatient(id);
     setDeleteConfirm(null);
-  };
+  }, [deletePatient]);
 
   return (
     <div className="space-y-6">
@@ -112,7 +113,7 @@ export default function Patients({ onViewPatient }: { onViewPatient: (id: string
                       <p className="text-sm text-gray-700">{formatDate(p.dateOfBirth)}</p>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="text-sm text-gray-700">{getPatientAppointmentCount(p.id)} citas</p>
+                      <p className="text-sm text-gray-700">{appointmentCountMap.get(p.id) ?? 0} citas</p>
                       <p className="text-xs text-gray-500">{p.medicalHistory?.substring(0, 30)}</p>
                     </td>
                     <td className="px-4 py-3">

@@ -1,34 +1,36 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card, CardBody, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { PatientForm } from './PatientForm';
 import { formatDate, getStatusLabel, getAppointmentTypeLabel, formatTime, formatCurrency, getInitials } from '../../utils/format';
-import { Patient } from '../../types';
 
 function PatientProgressChart({ patientId }: { patientId: string }) {
   const { progressRecords } = useApp();
-  const records = progressRecords
-    .filter(r => r.patientId === patientId)
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const records = useMemo(() =>
+    progressRecords
+      .filter(r => r.patientId === patientId)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+    [progressRecords, patientId]
+  );
+
+  const labels = useMemo(() => records.map(r => new Date(r.date).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })), [records]);
+  const painData = useMemo(() => records.map(r => r.painLevel), [records]);
+  const mobilityData = useMemo(() => records.map(r => r.mobilityScore), [records]);
+
+  const maxVal = useMemo(() => Math.max(...painData, ...mobilityData, 10), [painData, mobilityData]);
+  const chartHeight = 160;
+
+  const getPainColor = useCallback((level: number) => {
+    if (level <= 3) return 'bg-success';
+    if (level <= 6) return 'bg-warning';
+    return 'bg-danger';
+  }, []);
 
   if (records.length < 2) {
     return <p className="text-gray-500 text-sm py-4">No hay suficientes datos de progreso para mostrar gráfica.</p>;
   }
-
-  const labels = records.map(r => new Date(r.date).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' }));
-  const painData = records.map(r => r.painLevel);
-  const mobilityData = records.map(r => r.mobilityScore);
-
-  const maxVal = Math.max(...painData, ...mobilityData, 10);
-  const chartHeight = 160;
-
-  const getPainColor = (level: number) => {
-    if (level <= 3) return 'bg-success';
-    if (level <= 6) return 'bg-warning';
-    return 'bg-danger';
-  };
 
   return (
     <div className="mt-4">
@@ -66,7 +68,29 @@ export default function PatientDetail({ patientId, onBack }: { patientId: string
   const [showEdit, setShowEdit] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-  const patient = patients.find(p => p.id === patientId);
+  const patient = useMemo(() => patients.find(p => p.id === patientId), [patients, patientId]);
+
+  const patientAppointments = useMemo(() =>
+    patient ? appointments.filter(a => a.patientId === patientId).sort((a, b) => a.date.localeCompare(b.date)) : [],
+    [appointments, patientId, patient]
+  );
+
+  const patientTotalCharged = useMemo(() =>
+    patientAppointments.filter(a => a.status !== 'cancelled' && a.status !== 'no-show').reduce((sum, a) => sum + (a.amount || 0), 0),
+    [patientAppointments]
+  );
+
+  const patientPrescriptions = useMemo(() =>
+    prescriptions.filter(p => p.patientId === patientId),
+    [prescriptions, patientId]
+  );
+
+  const patientProgress = useMemo(() =>
+    progressRecords.filter(r => r.patientId === patientId).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+    [progressRecords, patientId]
+  );
+
+  const latestProgress = useMemo(() => patientProgress[patientProgress.length - 1], [patientProgress]);
 
   if (!patient) {
     return (
@@ -76,14 +100,6 @@ export default function PatientDetail({ patientId, onBack }: { patientId: string
       </div>
     );
   }
-
-  const patientAppointments = appointments.filter(a => a.patientId === patientId).sort((a, b) => a.date.localeCompare(b.date));
-  const patientTotalCharged = patientAppointments
-    .filter(a => a.status !== 'cancelled' && a.status !== 'no-show')
-    .reduce((sum, a) => sum + (a.amount || 0), 0);
-  const patientPrescriptions = prescriptions.filter(p => p.patientId === patientId);
-  const patientProgress = progressRecords.filter(r => r.patientId === patientId).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  const latestProgress = patientProgress[patientProgress.length - 1];
 
   return (
     <div className="space-y-6">

@@ -30,7 +30,7 @@ const progressCol = collection(db, 'progressRecords');
 const usersCol = collection(db, 'users');
 
 export async function fetchPatients(): Promise<Patient[]> {
-  const snap = await getDocs(query(patientsCol, orderBy('createdAt', 'desc')));
+  const snap = await getDocs(query(patientsCol, orderBy('createdAt', 'desc'), limit(500)));
   return snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Patient, 'id'>) }));
 }
 
@@ -48,7 +48,7 @@ export async function deletePatientDoc(id: string): Promise<void> {
 }
 
 export async function fetchAppointments(): Promise<Appointment[]> {
-  const snap = await getDocs(query(appointmentsCol, orderBy('createdAt', 'desc')));
+  const snap = await getDocs(query(appointmentsCol, orderBy('createdAt', 'desc'), limit(500)));
   return snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Appointment, 'id'>) }));
 }
 
@@ -71,7 +71,7 @@ export async function deleteAppointmentDoc(id: string): Promise<void> {
 }
 
 export async function fetchPrescriptions(): Promise<Prescription[]> {
-  const snap = await getDocs(query(prescriptionsCol, orderBy('createdAt', 'desc')));
+  const snap = await getDocs(query(prescriptionsCol, orderBy('createdAt', 'desc'), limit(500)));
   return snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Prescription, 'id'>) }));
 }
 
@@ -89,7 +89,7 @@ export async function deletePrescriptionDoc(id: string): Promise<void> {
 }
 
 export async function fetchProgressRecords(): Promise<ProgressRecord[]> {
-  const snap = await getDocs(query(progressCol, orderBy('createdAt', 'desc')));
+  const snap = await getDocs(query(progressCol, orderBy('createdAt', 'desc'), limit(500)));
   return snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<ProgressRecord, 'id'>) }));
 }
 

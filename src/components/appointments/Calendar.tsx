@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card, CardBody, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -11,7 +11,7 @@ const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 const MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
 export default function Calendar() {
-  const { appointments, updateAppointment, deleteAppointment } = useApp();
+  const { appointments, deleteAppointment } = useApp();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showForm, setShowForm] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
@@ -21,34 +21,63 @@ export default function Calendar() {
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
-  const firstDay = new Date(year, month, 1);
-  const firstDayOfWeek = (firstDay.getDay() + 6) % 7;
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDay = useMemo(() => new Date(year, month, 1), [year, month]);
+  const firstDayOfWeek = useMemo(() => (firstDay.getDay() + 6) % 7, [firstDay]);
+  const daysInMonth = useMemo(() => new Date(year, month + 1, 0).getDate(), [year, month]);
 
-  const todayISO = new Date().toISOString().split('T')[0];
+  const todayISO = useMemo(() => new Date().toISOString().split('T')[0], []);
 
-  const formatISO = (day: number) => {
+  const appointmentMap = useMemo(() => {
+    const map = new Map<string, Appointment[]>();
+    appointments.forEach(a => {
+      const list = map.get(a.date) || [];
+      list.push(a);
+      map.set(a.date, list);
+    });
+    return map;
+  }, [appointments]);
+
+  const formatISO = useCallback((day: number) => {
     return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-  };
+  }, [year, month]);
 
-  const getAppointmentsForDay = (day: number) => {
-    const iso = formatISO(day);
-    return appointments.filter(a => a.date === iso).sort((a, b) => a.startTime.localeCompare(b.startTime));
-  };
+  const selectedDayAppointments = useMemo(() => {
+    const list = appointmentMap.get(selectedDate) || [];
+    return list.sort((a, b) => a.startTime.localeCompare(b.startTime));
+  }, [appointmentMap, selectedDate]);
 
-  const selectedDayAppointments = appointments
-    .filter(a => a.date === selectedDate)
-    .sort((a, b) => a.startTime.localeCompare(b.startTime));
+  const calendarDays = useMemo(() => {
+    const days: (number | null)[] = [];
+    for (let i = 0; i < firstDayOfWeek; i++) {
+      days.push(null);
+    }
+    for (let day = 1; day <= daysInMonth; day++) {
+      days.push(day);
+    }
+    return days;
+  }, [firstDayOfWeek, daysInMonth]);
 
-  const navigateMonth = (direction: number) => {
+  const daysWithAppointments = useMemo(() => {
+    const map = new Map<number, Appointment[]>();
+    for (let day = 1; day <= daysInMonth; day++) {
+      const iso = formatISO(day);
+      const list = appointmentMap.get(iso);
+      if (list && list.length > 0) {
+        map.set(day, list);
+      }
+    }
+    return map;
+  }, [formatISO, appointmentMap, daysInMonth]);
+
+  const navigateMonth = useCallback((direction: number) => {
     setCurrentDate(new Date(year, month + direction, 1));
-  };
+  }, [year, month]);
 
-  const goToToday = () => {
+  const goToToday = useCallback(() => {
     const today = new Date();
     setCurrentDate(new Date(today.getFullYear(), today.getMonth(), 1));
     setSelectedDate(today.toISOString().split('T')[0]);
-  };
+  }, []);
 
   const getTypeColor = (type: string) => {
     const colors: Record<string, string> = {
@@ -88,20 +117,6 @@ export default function Calendar() {
     completed: 'badge-secondary',
     cancelled: 'badge-danger',
     'no-show': 'badge-warning',
-  };
-
-  const calendarDays = [];
-  for (let i = 0; i < firstDayOfWeek; i++) {
-    calendarDays.push(null);
-  }
-  for (let day = 1; day <= daysInMonth; day++) {
-    calendarDays.push(day);
-  }
-
-  const handleSlotClick = (day: number) => {
-    setSelectedDate(formatISO(day));
-    setEditingAppointment(null);
-    setShowForm(true);
   };
 
   return (
@@ -150,47 +165,47 @@ export default function Calendar() {
                     {day}
                   </div>
                 ))}
-                {calendarDays.map((day, index) => {
-                  if (day === null) return <div key={`empty-${index}`} className="min-h-20 rounded-lg" />;
-                  const iso = formatISO(day);
-                  const dayAppointments = getAppointmentsForDay(day);
-                  const isToday = iso === todayISO;
-                  const isSelected = iso === selectedDate;
+                  {calendarDays.map((day, index) => {
+                    if (day === null) return <div key={`empty-${index}`} className="min-h-20 rounded-lg" />;
+                    const dayAppointments = daysWithAppointments.get(day) || [];
+                    const iso = formatISO(day);
+                    const isToday = iso === todayISO;
+                    const isSelected = iso === selectedDate;
 
-                  return (
-                    <div
-                      key={day}
-                      onClick={() => setSelectedDate(iso)}
-                      className={`min-h-24 rounded-lg border p-1.5 transition-colors cursor-pointer ${
-                        isSelected
-                          ? 'border-primary bg-primary-light'
-                          : isToday
-                            ? 'border-primary bg-primary-light/50'
-                            : 'border-gray-200 hover:border-primary'
-                      }`}
-                    >
-                      <div className={`text-xs font-medium mb-1 ${isToday ? 'text-primary' : 'text-gray-600'}`}>
-                        {day}
+                    return (
+                      <div
+                        key={day}
+                        onClick={() => setSelectedDate(iso)}
+                        className={`min-h-24 rounded-lg border p-1.5 transition-colors cursor-pointer ${
+                          isSelected
+                            ? 'border-primary bg-primary-light'
+                            : isToday
+                              ? 'border-primary bg-primary-light/50'
+                              : 'border-gray-200 hover:border-primary'
+                        }`}
+                      >
+                        <div className={`text-xs font-medium mb-1 ${isToday ? 'text-primary' : 'text-gray-600'}`}>
+                          {day}
+                        </div>
+                        <div className="space-y-0.5">
+                          {dayAppointments.slice(0, 3).map(a => (
+                            <div
+                              key={a.id}
+                              className={`text-[10px] px-1.5 py-0.5 rounded truncate ${getTypeColor(a.type)}`}
+                              title={`${a.patientName} - ${a.startTime}`}
+                            >
+                              {a.startTime} {a.patientName.split(' ')[0]}
+                            </div>
+                          ))}
+                          {dayAppointments.length > 3 && (
+                            <div className="text-[10px] text-gray-400 font-medium px-1">
+                              +{dayAppointments.length - 3} más
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="space-y-0.5">
-                        {dayAppointments.slice(0, 3).map(a => (
-                          <div
-                            key={a.id}
-                            className={`text-[10px] px-1.5 py-0.5 rounded truncate ${getTypeColor(a.type)}`}
-                            title={`${a.patientName} - ${a.startTime}`}
-                          >
-                            {a.startTime} {a.patientName.split(' ')[0]}
-                          </div>
-                        ))}
-                        {dayAppointments.length > 3 && (
-                          <div className="text-[10px] text-gray-400 font-medium px-1">
-                            +{dayAppointments.length - 3} más
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
 
               <div className="flex gap-4 mt-4 text-xs text-gray-600">

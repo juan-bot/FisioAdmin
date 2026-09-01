@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card, CardBody } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -7,13 +7,6 @@ import { PrescriptionForm } from './PrescriptionForm';
 import { formatDate } from '../../utils/format';
 import { Prescription } from '../../types';
 import { exportPrescriptionToPDF } from '../../utils/exportPrescription';
-
-const getTherapistDisplayName = (prescription: Prescription, currentTherapist: { id: string; name: string }) => {
-  if (prescription.therapistId === currentTherapist.id) {
-    return currentTherapist.name;
-  }
-  return prescription.therapistName;
-};
 
 export default function Prescriptions() {
   const { prescriptions, updatePrescription, deletePrescription } = useApp();
@@ -24,31 +17,73 @@ export default function Prescriptions() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [search, setSearch] = useState('');
 
-  const filteredPrescriptions = prescriptions
-    .filter(p => {
-      const matchesStatus = filterStatus === 'all' || p.status === filterStatus;
-      const matchesSearch = p.patientName.toLowerCase().includes(search.toLowerCase()) || p.diagnosis.toLowerCase().includes(search.toLowerCase());
-      return matchesStatus && matchesSearch;
-    })
-    .sort((a, b) => b.date.localeCompare(a.date));
+  const filteredPrescriptions = useMemo(() =>
+    prescriptions
+      .filter(p => {
+        const matchesStatus = filterStatus === 'all' || p.status === filterStatus;
+        const matchesSearch = p.patientName.toLowerCase().includes(search.toLowerCase()) || p.diagnosis.toLowerCase().includes(search.toLowerCase());
+        return matchesStatus && matchesSearch;
+      })
+      .sort((a, b) => b.date.localeCompare(a.date)),
+    [prescriptions, filterStatus, search]
+  );
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = useCallback((status: string) => {
     const classes: Record<string, string> = {
       active: 'badge-success',
       completed: 'badge-info',
       cancelled: 'badge-secondary',
     };
     return classes[status] || 'badge-secondary';
-  };
+  }, []);
 
-  const getStatusLabel = (status: string) => {
+  const getStatusLabel = useCallback((status: string) => {
     const labels: Record<string, string> = {
       active: 'Activa',
       completed: 'Completada',
       cancelled: 'Cancelada',
     };
     return labels[status] || status;
-  };
+  }, []);
+
+  const handleNewPrescription = useCallback(() => {
+    setEditingPrescription(null);
+    setShowForm(true);
+  }, []);
+
+  const handleView = useCallback((p: Prescription) => {
+    setViewingPrescription(p);
+  }, []);
+
+  const handleEdit = useCallback((p: Prescription) => {
+    setEditingPrescription(p);
+    setShowForm(true);
+  }, []);
+
+  const handleDeleteConfirm = useCallback((p: Prescription) => {
+    setDeleteConfirm(p);
+  }, []);
+
+  const handleMarkCompleted = useCallback(() => {
+    if (viewingPrescription) {
+      updatePrescription(viewingPrescription.id, { status: 'completed' });
+      setViewingPrescription(null);
+    }
+  }, [viewingPrescription, updatePrescription]);
+
+  const handleExportPDF = useCallback(() => {
+    if (viewingPrescription) {
+      exportPrescriptionToPDF(viewingPrescription);
+    }
+  }, [viewingPrescription]);
+
+  const handleEditViewing = useCallback(() => {
+    if (viewingPrescription) {
+      setEditingPrescription(viewingPrescription);
+      setShowForm(true);
+      setViewingPrescription(null);
+    }
+  }, [viewingPrescription]);
 
   return (
     <div className="space-y-6">
@@ -57,7 +92,7 @@ export default function Prescriptions() {
           <h2 className="text-2xl font-bold text-gray-900">Recetas</h2>
           <p className="text-gray-500">Crea y gestiona recetas de tratamiento</p>
         </div>
-        <Button onClick={() => { setEditingPrescription(null); setShowForm(true); }}>+ Nueva Receta</Button>
+        <Button onClick={handleNewPrescription}>+ Nueva Receta</Button>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
@@ -79,66 +114,66 @@ export default function Prescriptions() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredPrescriptions.map(p => (
-          <Card key={p.id} className="hover:shadow-md transition-shadow">
-            <CardBody>
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-accent-light flex items-center justify-center">
-                    <svg className="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">{p.patientName}</p>
-                    <p className="text-xs text-gray-500">{formatDate(p.date)}</p>
-                  </div>
-                </div>
-                <span className={`badge ${getStatusBadge(p.status)}`}>{getStatusLabel(p.status)}</span>
-              </div>
+                {filteredPrescriptions.map(p => (
+                  <Card key={p.id} className="hover:shadow-md transition-shadow">
+                    <CardBody>
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-accent-light flex items-center justify-center">
+                            <svg className="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-gray-900">{p.patientName}</p>
+                            <p className="text-xs text-gray-500">{formatDate(p.date)}</p>
+                          </div>
+                        </div>
+                        <span className={`badge ${getStatusBadge(p.status)}`}>{getStatusLabel(p.status)}</span>
+                      </div>
 
-              <div className="mt-4">
-                <p className="text-xs text-gray-500 font-medium">Diagnóstico</p>
-                <p className="text-sm text-gray-900 mt-1">{p.diagnosis}</p>
-              </div>
+                      <div className="mt-4">
+                        <p className="text-xs text-gray-500 font-medium">Diagnóstico</p>
+                        <p className="text-sm text-gray-900 mt-1">{p.diagnosis}</p>
+                      </div>
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                {p.treatments.slice(0, 2).map(t => (
-                  <span key={t.id} className="badge badge-info">{t.name}</span>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {p.treatments.slice(0, 2).map(t => (
+                          <span key={t.id} className="badge badge-info">{t.name}</span>
+                        ))}
+                        {p.treatments.length > 2 && (
+                          <span className="badge badge-secondary">+{p.treatments.length - 2} más</span>
+                        )}
+                      </div>
+
+                      <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
+                        <p className="text-xs text-gray-500">{p.therapistName}</p>
+                        <p className="text-xs text-gray-500">{p.frequency}</p>
+                      </div>
+
+                      <div className="mt-3 flex gap-2">
+                        <button
+                          onClick={() => handleView(p)}
+                          className="flex-1 px-3 py-1.5 text-sm text-primary hover:bg-primary-light rounded-lg transition-colors border border-primary"
+                        >
+                          Ver
+                        </button>
+                        <button
+                          onClick={() => handleEdit(p)}
+                          className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => handleDeleteConfirm(p)}
+                          className="px-3 py-1.5 text-sm text-danger hover:bg-danger-light rounded-lg transition-colors border border-danger"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </CardBody>
+                  </Card>
                 ))}
-                {p.treatments.length > 2 && (
-                  <span className="badge badge-secondary">+{p.treatments.length - 2} más</span>
-                )}
-              </div>
-
-              <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between">
-                <p className="text-xs text-gray-500">{p.therapistName}</p>
-                <p className="text-xs text-gray-500">{p.frequency}</p>
-              </div>
-
-              <div className="mt-3 flex gap-2">
-                <button
-                  onClick={() => setViewingPrescription(p)}
-                  className="flex-1 px-3 py-1.5 text-sm text-primary hover:bg-primary-light rounded-lg transition-colors border border-primary"
-                >
-                  Ver
-                </button>
-                <button
-                  onClick={() => { setEditingPrescription(p); setShowForm(true); }}
-                  className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200"
-                >
-                  Editar
-                </button>
-                <button
-                  onClick={() => setDeleteConfirm(p)}
-                  className="px-3 py-1.5 text-sm text-danger hover:bg-danger-light rounded-lg transition-colors border border-danger"
-                >
-                  Eliminar
-                </button>
-              </div>
-            </CardBody>
-          </Card>
-        ))}
         {filteredPrescriptions.length === 0 && (
           <div className="col-span-full text-center py-8 text-gray-500">
             No se encontraron recetas
@@ -200,13 +235,13 @@ export default function Prescriptions() {
 
             <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
               {viewingPrescription.status === 'active' && (
-                <Button variant="secondary" onClick={() => { updatePrescription(viewingPrescription.id, { status: 'completed' }); setViewingPrescription(null); }}>
+                <Button variant="secondary" onClick={handleMarkCompleted}>
                   Marcar como Completada
                 </Button>
               )}
               <Button 
                 variant="outline" 
-                onClick={() => exportPrescriptionToPDF(viewingPrescription)}
+                onClick={handleExportPDF}
                 className="flex items-center gap-2"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -214,7 +249,7 @@ export default function Prescriptions() {
                 </svg>
                 Exportar PDF
               </Button>
-              <Button variant="outline" onClick={() => { setEditingPrescription(viewingPrescription); setShowForm(true); setViewingPrescription(null); }}>
+              <Button variant="outline" onClick={handleEditViewing}>
                 Editar Receta
               </Button>
             </div>

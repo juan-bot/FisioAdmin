@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card, CardBody, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -7,64 +7,135 @@ import { ProgressForm } from './ProgressForm';
 import { formatDate } from '../../utils/format';
 import { ProgressRecord } from '../../types';
 
-function MetricTrendChart({ patientId }: { patientId: string }) {
+const MetricTrendChart = memo(function MetricTrendChart({ patientId }: { patientId: string }) {
   const { progressRecords } = useApp();
-  const records = progressRecords
-    .filter(r => r.patientId === patientId)
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const records = useMemo(() =>
+    progressRecords
+      .filter(r => r.patientId === patientId)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+    [progressRecords, patientId]
+  );
 
-  if (records.length === 0) return null;
-
-  const metricNames = Array.from(new Set(records.flatMap(r => r.metrics.map(m => m.name))));
-  const latestMetricValues = new Map<string, number[]>();
-
-  records.forEach(r => {
-    r.metrics.forEach(m => {
-      if (!latestMetricValues.has(m.name)) latestMetricValues.set(m.name, []);
-      latestMetricValues.get(m.name)!.push(m.value);
+  const metricNames = useMemo(() => Array.from(new Set(records.flatMap(r => r.metrics.map(m => m.name)))), [records]);
+  const latestMetricValues = useMemo(() => {
+    const map = new Map<string, number[]>();
+    records.forEach(r => {
+      r.metrics.forEach(m => {
+        if (!map.has(m.name)) map.set(m.name, []);
+        map.get(m.name)!.push(m.value);
+      });
     });
-  });
+    return map;
+  }, [records]);
+
+  const allValues = useMemo(() =>
+    Array.from(latestMetricValues.values()).flat().map(v => v || 0),
+    [latestMetricValues]
+  );
+  const maxVal = Math.max(...allValues, 10);
+  const chartHeight = 160;
+
+  const labels = useMemo(() =>
+    records.map(r => new Date(r.date).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })),
+    [records]
+  );
+
+  const getPainColor = useCallback((level: number) => {
+    if (level <= 3) return 'bg-success';
+    if (level <= 6) return 'bg-warning';
+    return 'bg-danger';
+  }, []);
+
+  if (records.length < 2) {
+    return <p className="text-gray-500 text-sm py-4">No hay suficientes datos de progreso para mostrar gráfica.</p>;
+  }
 
   if (metricNames.length === 0) return null;
 
-  const maxValue = Math.max(...Array.from(latestMetricValues.values()).flat().map(v => v || 0));
-  const chartHeight = 140;
+  return (
+    <div className="mt-4">
+      <h4 className="text-sm font-semibold text-gray-700 mb-4">Evolución del Paciente</h4>
+      <div className="flex items-end gap-3 h-44">
+        {records.map((r, i) => (
+          <div key={r.id} className="flex-1 flex flex-col items-center gap-1" style={{ minWidth: 0 }}>
+            <div className="w-full flex flex-col items-center justify-end" style={{ height: chartHeight }}>
+              <span className="text-[10px] text-gray-400">{r.painLevel}</span>
+              <div
+                className={`w-6 rounded-t ${getPainColor(r.painLevel)}`}
+                style={{ height: `${(r.painLevel / maxVal) * (chartHeight / 2)}px` }}
+                title={`Dolor: ${r.painLevel}/10`}
+              />
+              <div
+                className="w-6 rounded-t bg-primary mt-0.5"
+                style={{ height: `${(r.mobilityScore / maxVal) * (chartHeight / 2)}px` }}
+                title={`Movilidad: ${r.mobilityScore}/100`}
+              />
+            </div>
+            <span className="text-[10px] text-gray-400 font-medium">{labels[i]}</span>
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-4 mt-3 text-xs text-gray-600">
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-primary inline-block" /> Movilidad</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-danger inline-block" /> Dolor (más bajo = mejor)</span>
+      </div>
+    </div>
+  );
+});
+
+function PatientProgressBar({ patient, progressRecords }: { patient: any; progressRecords: ProgressRecord[] }) {
+  const patientRecords = useMemo(() =>
+    progressRecords.filter(r => r.patientId === patient.id),
+    [progressRecords, patient.id]
+  );
+
+  const sorted = useMemo(() =>
+    [...patientRecords].sort((a, b) => b.date.localeCompare(a.date)),
+    [patientRecords]
+  );
+
+  if (patientRecords.length === 0) {
+    return (
+      <div key={patient.id} className="p-4 bg-gray-50 rounded-lg">
+        <p className="text-sm font-medium text-gray-700">{patient.firstName} {patient.lastName}</p>
+        <p className="text-xs text-gray-400 mt-1">Sin registros de progreso aún</p>
+      </div>
+    );
+  }
+
+  const latest = sorted[0];
+  const first = sorted[sorted.length - 1];
+  const change = latest.painLevel - first.painLevel;
 
   return (
-    <div>
-      {metricNames.map(metricName => {
-        const values = latestMetricValues.get(metricName) || [];
-        if (values.length < 2) return null;
-        const min = Math.min(...values);
-        const max = Math.max(...values);
-        const range = Math.max(max - min, 1);
-
-        return (
-          <div key={metricName} className="mb-4">
-            <div className="flex justify-between items-center mb-1">
-              <p className="text-sm font-medium text-gray-700">{metricName}</p>
-              <p className="text-xs text-gray-500">de {min} a {max}</p>
-            </div>
-            <div className="flex items-end gap-1 h-16">
-              {values.map((v, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
-                  <span className="text-[9px] text-gray-500">{v}</span>
-                  <div
-                    className="w-full rounded-t bg-secondary"
-                    style={{ height: `${(v / Math.max(maxValue, 1)) * 48}px` }}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      }).filter(Boolean)}
+    <div key={patient.id} className="p-4 border border-gray-200 rounded-lg">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-gray-900">{patient.firstName} {patient.lastName}</p>
+        <span className={`badge ${change <= 0 ? 'badge-success' : 'badge-warning'}`}>
+          {change < 0 ? `${Math.abs(change)} pts ↓` : change === 0 ? 'Sin cambio' : `${change} pts ↑`}
+        </span>
+      </div>
+      <div className="mt-3 space-y-2">
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-gray-500">Dolor actual</span>
+          <span className="font-semibold text-gray-900">{latest.painLevel}/10</span>
+        </div>
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-gray-500">Movilidad</span>
+          <span className="font-semibold text-gray-900">{latest.mobilityScore}%</span>
+        </div>
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-gray-500">Fuerza</span>
+          <span className="font-semibold text-gray-900">{latest.strengthScore}%</span>
+        </div>
+      </div>
+      <p className="text-[10px] text-gray-400 mt-3">Actualizado: {formatDate(latest.date)}</p>
     </div>
   );
 }
 
 export default function Progress() {
-  const { patients, progressRecords, addProgressRecord, updateProgressRecord, deleteProgressRecord } = useApp();
+  const { patients, progressRecords, deleteProgressRecord } = useApp();
   const [showForm, setShowForm] = useState(false);
   const [editingRecord, setEditingRecord] = useState<ProgressRecord | null>(null);
   const [viewingRecord, setViewingRecord] = useState<ProgressRecord | null>(null);
@@ -72,31 +143,29 @@ export default function Progress() {
   const [filterPatient, setFilterPatient] = useState('all');
   const [search, setSearch] = useState('');
 
-  const filteredRecords = progressRecords
-    .filter(r => {
-      const matchesPatient = filterPatient === 'all' || r.patientId === filterPatient;
-      const matchesSearch = r.patientName.toLowerCase().includes(search.toLowerCase());
-      return matchesPatient && matchesSearch;
-    })
-    .sort((a, b) => b.date.localeCompare(a.date));
+  const filteredRecords = useMemo(() =>
+    progressRecords
+      .filter(r => {
+        const matchesPatient = filterPatient === 'all' || r.patientId === filterPatient;
+        const matchesSearch = r.patientName.toLowerCase().includes(search.toLowerCase());
+        return matchesPatient && matchesSearch;
+      })
+      .sort((a, b) => b.date.localeCompare(a.date)),
+    [progressRecords, filterPatient, search]
+  );
 
-  const averagePainByPatient = (patientId: string) => {
-    const records = progressRecords.filter(r => r.patientId === patientId);
-    if (records.length === 0) return 0;
-    const latest = records.sort((a, b) => b.date.localeCompare(a.date))[0];
-    return latest.painLevel;
-  };
+  const overallAverage = useMemo(() =>
+    filteredRecords.length > 0
+      ? Math.round(filteredRecords.reduce((acc, r) => acc + ((r.mobilityScore + r.strengthScore + r.functionalScore) / 3), 0) / filteredRecords.length)
+      : 0,
+    [filteredRecords]
+  );
 
-  const latestMobilityByPatient = (patientId: string) => {
-    const records = progressRecords.filter(r => r.patientId === patientId);
-    if (records.length === 0) return 0;
-    const latest = records.sort((a, b) => b.date.localeCompare(a.date))[0];
-    return latest.mobilityScore;
-  };
+  const sortedPatients = useMemo(() => [...patients].sort((a, b) => a.firstName.localeCompare(b.firstName)), [patients]);
 
-  const overallAverage = filteredRecords.length > 0
-    ? Math.round(filteredRecords.reduce((acc, r) => acc + ((r.mobilityScore + r.strengthScore + r.functionalScore) / 3), 0) / filteredRecords.length)
-    : 0;
+  const handleFilterPatient = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => setFilterPatient(e.target.value), []);
+  const handleSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => setSearch(e.target.value), []);
+  const handleShowForm = useCallback(() => { setEditingRecord(null); setShowForm(true); }, []);
 
   return (
     <div className="space-y-6">
@@ -105,7 +174,7 @@ export default function Progress() {
           <h2 className="text-2xl font-bold text-gray-900">Seguimiento de Progreso</h2>
           <p className="text-gray-500">Registra y monitorea la evolución de los pacientes</p>
         </div>
-        <Button onClick={() => { setEditingRecord(null); setShowForm(true); }}>+ Nuevo Registro</Button>
+        <Button onClick={handleShowForm}>+ Nuevo Registro</Button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -136,12 +205,12 @@ export default function Progress() {
             placeholder="Buscar por paciente..."
             className="input"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={handleSearch}
           />
         </div>
-        <select className="input sm:w-56" value={filterPatient} onChange={(e) => setFilterPatient(e.target.value)}>
+        <select className="input sm:w-56" value={filterPatient} onChange={handleFilterPatient}>
           <option value="all">Todos los pacientes</option>
-          {patients.map(p => (
+          {sortedPatients.map(p => (
             <option key={p.id} value={p.id}>{p.firstName} {p.lastName}</option>
           ))}
         </select>
@@ -261,43 +330,9 @@ export default function Progress() {
         </CardHeader>
         <CardBody>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {patients.map(p => {
-              const patientRecords = progressRecords.filter(r => r.patientId === p.id);
-              if (patientRecords.length === 0) return (
-                <div key={p.id} className="p-4 bg-gray-50 rounded-lg">
-                  <p className="text-sm font-medium text-gray-700">{p.firstName} {p.lastName}</p>
-                  <p className="text-xs text-gray-400 mt-1">Sin registros de progreso aún</p>
-                </div>
-              );
-              const latest = patientRecords.sort((a, b) => b.date.localeCompare(a.date))[0];
-              const first = patientRecords.sort((a, b) => a.date.localeCompare(b.date))[0];
-              const change = latest.painLevel - first.painLevel;
-              return (
-                <div key={p.id} className="p-4 border border-gray-200 rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-gray-900">{p.firstName} {p.lastName}</p>
-                    <span className={`badge ${change <= 0 ? 'badge-success' : 'badge-warning'}`}>
-                      {change < 0 ? `${Math.abs(change)} pts ↓` : change === 0 ? 'Sin cambio' : `${change} pts ↑`}
-                    </span>
-                  </div>
-                  <div className="mt-3 space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-500">Dolor actual</span>
-                      <span className="font-semibold text-gray-900">{latest.painLevel}/10</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-500">Movilidad</span>
-                      <span className="font-semibold text-gray-900">{latest.mobilityScore}%</span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-gray-500">Fuerza</span>
-                      <span className="font-semibold text-gray-900">{latest.strengthScore}%</span>
-                    </div>
-                  </div>
-                  <p className="text-[10px] text-gray-400 mt-3">Actualizado: {formatDate(latest.date)}</p>
-                </div>
-              );
-            })}
+            {sortedPatients.map(p => (
+              <PatientProgressBar key={p.id} patient={p} progressRecords={progressRecords} />
+            ))}
           </div>
         </CardBody>
       </Card>

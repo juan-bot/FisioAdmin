@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card, CardBody, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -16,16 +16,19 @@ export default function Appointments() {
   const [filterType, setFilterType] = useState('all');
   const [search, setSearch] = useState('');
 
-  const filteredAppointments = appointments
-    .filter(a => {
-      const matchesStatus = filterStatus === 'all' || a.status === filterStatus;
-      const matchesType = filterType === 'all' || a.type === filterType;
-      const matchesSearch = a.patientName.toLowerCase().includes(search.toLowerCase()) || a.therapistName.toLowerCase().includes(search.toLowerCase());
-      return matchesStatus && matchesType && matchesSearch;
-    })
-    .sort((a, b) => (b.date + b.startTime).localeCompare(a.date + a.startTime));
+  const filteredAppointments = useMemo(() =>
+    appointments
+      .filter(a => {
+        const matchesStatus = filterStatus === 'all' || a.status === filterStatus;
+        const matchesType = filterType === 'all' || a.type === filterType;
+        const matchesSearch = a.patientName.toLowerCase().includes(search.toLowerCase()) || a.therapistName.toLowerCase().includes(search.toLowerCase());
+        return matchesStatus && matchesType && matchesSearch;
+      })
+      .sort((a, b) => (b.date + b.startTime).localeCompare(a.date + a.startTime)),
+    [appointments, filterStatus, filterType, search]
+  );
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = useCallback((status: string) => {
     const classes: Record<string, string> = {
       scheduled: 'badge-info',
       confirmed: 'badge-success',
@@ -34,11 +37,27 @@ export default function Appointments() {
       'no-show': 'badge-warning',
     };
     return classes[status] || 'badge-secondary';
-  };
+  }, []);
 
-  const handleStatusChange = (appointment: Appointment, newStatus: Appointment['status']) => {
+  const handleStatusChange = useCallback((appointment: Appointment, newStatus: Appointment['status']) => {
     updateAppointment(appointment.id, { status: newStatus });
-  };
+  }, [updateAppointment]);
+
+  const handleEdit = useCallback((appointment: Appointment) => {
+    setEditingAppointment(appointment);
+    setShowForm(true);
+  }, []);
+
+  const handleDeleteConfirm = useCallback((a: Appointment) => {
+    setDeleteConfirm(a);
+  }, []);
+
+  const handleDelete = useCallback(() => {
+    if (deleteConfirm) {
+      deleteAppointment(deleteConfirm.id);
+      setDeleteConfirm(null);
+    }
+  }, [deleteConfirm, deleteAppointment]);
 
   return (
     <div className="space-y-6">
@@ -132,16 +151,16 @@ export default function Appointments() {
                           {['scheduled', 'confirmed', 'completed', 'cancelled', 'no-show'].map(s => (
                             <option key={s} value={s}>{getStatusLabel(s)}</option>
                           ))}
-                         </select>
-                       </div>
-                     </td>
-                     <td className="px-4 py-3">
-                       <p className="text-sm font-medium text-gray-900">{a.amount ? formatCurrency(a.amount) : '—'}</p>
-                     </td>
-                     <td className="px-4 py-3">
-                       <div className="flex items-center gap-2">
+                        </select>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="text-sm font-medium text-gray-900">{a.amount ? formatCurrency(a.amount) : '—'}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
                         <button
-                          onClick={() => { setEditingAppointment(a); setShowForm(true); }}
+                          onClick={() => handleEdit(a)}
                           className="p-1.5 text-gray-500 hover:text-primary hover:bg-primary-light rounded-lg transition-colors"
                           title="Editar"
                         >
@@ -150,7 +169,7 @@ export default function Appointments() {
                           </svg>
                         </button>
                         <button
-                          onClick={() => setDeleteConfirm(a)}
+                          onClick={() => handleDeleteConfirm(a)}
                           className="p-1.5 text-gray-500 hover:text-danger hover:bg-danger-light rounded-lg transition-colors"
                           title="Eliminar"
                         >
@@ -186,7 +205,7 @@ export default function Appointments() {
         </p>
         <div className="mt-6 flex justify-end gap-3">
           <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancelar</Button>
-          <Button variant="danger" onClick={() => { if (deleteConfirm) deleteAppointment(deleteConfirm.id); setDeleteConfirm(null); }}>Eliminar</Button>
+          <Button variant="danger" onClick={handleDelete}>Eliminar</Button>
         </div>
       </Modal>
     </div>

@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Patient, Appointment, Prescription, ProgressRecord, DashboardStats, UserProfile } from '../types';
+import { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
+import { Patient, Appointment, Prescription, ProgressRecord, DashboardStats } from '../types';
 import { useAuth } from './AuthContext';
 import {
   fetchPatients,
@@ -89,124 +89,117 @@ export function AppProvider({ children }: { children: ReactNode }) {
     };
   }, [status]);
 
-  const getTherapistName = (profile: UserProfile | null) => {
-    if (!profile) return CURRENT_THERAPIST.name;
-    if (profile.displayName && !profile.displayName.includes('@')) {
-      return profile.displayName;
-    }
-    return profile.email?.split('@')[0] || 'Terapeuta';
-  };
+  const currentTherapist = useMemo(() => {
+    if (!profile) return CURRENT_THERAPIST;
+    const name = profile.displayName && !profile.displayName.includes('@')
+      ? profile.displayName
+      : profile.email?.split('@')[0] || 'Terapeuta';
+    return { id: profile.uid, name };
+  }, [profile]);
 
-  const currentTherapist = profile
-    ? { id: profile.uid, name: getTherapistName(profile) }
-    : CURRENT_THERAPIST;
-
-  const addPatient = async (data: Omit<Patient, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const addPatient = useCallback(async (data: Omit<Patient, 'id' | 'createdAt' | 'updatedAt'>) => {
     const id = await createPatient(data);
     const now = new Date().toISOString();
     setPatients(prev => [{ ...data, id, createdAt: now, updatedAt: now }, ...prev]);
-  };
+  }, []);
 
-  const updatePatient = async (id: string, data: Partial<Patient>) => {
+  const updatePatient = useCallback(async (id: string, data: Partial<Patient>) => {
     await updatePatientDoc(id, data);
     setPatients(prev => prev.map(p => p.id === id ? { ...p, ...data, updatedAt: new Date().toISOString() } : p));
-  };
+  }, []);
 
-  const deletePatient = async (id: string) => {
+  const deletePatient = useCallback(async (id: string) => {
     await deletePatientDoc(id);
     setPatients(prev => prev.filter(p => p.id !== id));
-  };
+  }, []);
 
-  const addAppointment = async (data: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const addAppointment = useCallback(async (data: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>) => {
     const id = await createAppointment(data);
     const now = new Date().toISOString();
     setAppointments(prev => [{ ...data, id, createdAt: now, updatedAt: now }, ...prev]);
-  };
+  }, []);
 
-  const updateAppointment = async (id: string, data: Partial<Appointment>) => {
+  const updateAppointment = useCallback(async (id: string, data: Partial<Appointment>) => {
     await updateAppointmentDoc(id, data);
     setAppointments(prev => prev.map(a => a.id === id ? { ...a, ...data, updatedAt: new Date().toISOString() } : a));
-  };
+  }, []);
 
-  const deleteAppointment = async (id: string) => {
+  const deleteAppointment = useCallback(async (id: string) => {
     await deleteAppointmentDoc(id);
     setAppointments(prev => prev.filter(a => a.id !== id));
-  };
+  }, []);
 
-  const addPrescription = async (data: Omit<Prescription, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const addPrescription = useCallback(async (data: Omit<Prescription, 'id' | 'createdAt' | 'updatedAt'>) => {
     const id = await createPrescription(data);
     const now = new Date().toISOString();
     setPrescriptions(prev => [{ ...data, id, createdAt: now, updatedAt: now }, ...prev]);
-  };
+  }, []);
 
-  const updatePrescription = async (id: string, data: Partial<Prescription>) => {
+  const updatePrescription = useCallback(async (id: string, data: Partial<Prescription>) => {
     await updatePrescriptionDoc(id, data);
     setPrescriptions(prev => prev.map(p => p.id === id ? { ...p, ...data, updatedAt: new Date().toISOString() } : p));
-  };
+  }, []);
 
-  const deletePrescription = async (id: string) => {
+  const deletePrescription = useCallback(async (id: string) => {
     await deletePrescriptionDoc(id);
     setPrescriptions(prev => prev.filter(p => p.id !== id));
-  };
+  }, []);
 
-  const addProgressRecord = async (data: Omit<ProgressRecord, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const addProgressRecord = useCallback(async (data: Omit<ProgressRecord, 'id' | 'createdAt' | 'updatedAt'>) => {
     const id = await createProgressRecord(data);
     const now = new Date().toISOString();
     setProgressRecords(prev => [{ ...data, id, createdAt: now, updatedAt: now }, ...prev]);
-  };
+  }, []);
 
-  const updateProgressRecord = async (id: string, data: Partial<ProgressRecord>) => {
+  const updateProgressRecord = useCallback(async (id: string, data: Partial<ProgressRecord>) => {
     await updateProgressRecordDoc(id, data);
     setProgressRecords(prev => prev.map(r => r.id === id ? { ...r, ...data, updatedAt: new Date().toISOString() } : r));
-  };
+  }, []);
 
-  const deleteProgressRecord = async (id: string) => {
+  const deleteProgressRecord = useCallback(async (id: string) => {
     await deleteProgressRecordDoc(id);
     setProgressRecords(prev => prev.filter(r => r.id !== id));
-  };
+  }, []);
 
-  const todayISOForStats = new Date().toISOString().split('T')[0];
-  const now = new Date();
-  const appointmentsToday = appointments.filter(a => a.date === todayISOForStats).length;
-  const appointmentsThisWeek = appointments.filter(a => {
-    const date = new Date(a.date);
+  const stats = useMemo<DashboardStats>(() => {
+    const todayISO = new Date().toISOString().split('T')[0];
+    const now = new Date();
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay() + 1);
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 6);
-    return date >= startOfWeek && date <= endOfWeek;
-  }).length;
-  const pendingPrescriptions = prescriptions.filter(p => p.status === 'active').length;
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-  const monthAppointments = appointments.filter(a => {
-    const d = new Date(a.date);
-    return d >= monthStart && d <= monthEnd;
-  });
-  const chargedAppointments = monthAppointments.filter(a => a.status !== 'cancelled' && a.status !== 'no-show');
-  const revenueThisMonth = chargedAppointments.reduce((sum, a) => sum + (a.amount || 0), 0);
-  const completedSessionsThisMonth = chargedAppointments.length;
+    const appointmentsToday = appointments.filter(a => a.date === todayISO).length;
+    const appointmentsThisWeek = appointments.filter(a => {
+      const date = new Date(a.date);
+      return date >= startOfWeek && date <= endOfWeek;
+    }).length;
+    const pendingPrescriptions = prescriptions.filter(p => p.status === 'active').length;
+    const chargedAppointments = appointments.filter(a => {
+      const d = new Date(a.date);
+      return d >= monthStart && d <= monthEnd && a.status !== 'cancelled' && a.status !== 'no-show';
+    });
+    const revenueThisMonth = chargedAppointments.reduce((sum, a) => sum + (a.amount || 0), 0);
+    const completedSessionsThisMonth = chargedAppointments.length;
+    const averageProgressScore = progressRecords.length > 0
+      ? Math.round(
+          progressRecords.reduce((acc, r) => acc + (r.mobilityScore + r.strengthScore + r.functionalScore) / 3, 0) / progressRecords.length
+        )
+      : 0;
 
-  const averageProgressScore = progressRecords.length > 0
-    ? Math.round(
-        progressRecords.reduce(
-          (acc, r) => acc + (r.mobilityScore + r.strengthScore + r.functionalScore) / 3,
-          0
-        ) / progressRecords.length
-      )
-    : 0;
-
-  const stats: DashboardStats = {
-    totalPatients: patients.length,
-    activePatients: patients.filter(p => p.status === 'active').length,
-    appointmentsToday,
-    appointmentsThisWeek,
-    pendingPrescriptions,
-    completedSessionsThisMonth,
-    revenueThisMonth,
-    averageProgressScore,
-  };
+    return {
+      totalPatients: patients.length,
+      activePatients: patients.filter(p => p.status === 'active').length,
+      appointmentsToday,
+      appointmentsThisWeek,
+      pendingPrescriptions,
+      completedSessionsThisMonth,
+      revenueThisMonth,
+      averageProgressScore,
+    };
+  }, [appointments, prescriptions, progressRecords, patients]);
 
   return (
     <AppContext.Provider value={{

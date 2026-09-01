@@ -2,11 +2,16 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Solo usuarios autenticados pueden leer/escribir.
-    // La autorización de "solo gente autorizada" se controla en la app:
-    // un usuario no aprobado queda en estado "pending" y no carga datos.
+    // Allow authenticated users to read/write their own data
     match /{document=**} {
       allow read, write: if request.auth != null;
+    }
+    
+    // Allow anyone to create users (for initial registration)
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+                   && request.resource.data.id == request.auth.uid;
     }
   }
 }

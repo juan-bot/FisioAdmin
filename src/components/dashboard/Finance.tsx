@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card, CardBody, CardHeader } from '../ui/Card';
 import { formatCurrency } from '../../utils/format';
@@ -33,14 +33,18 @@ export function Finance() {
   const cumplimiento = budget > 0 ? Math.round((stats.revenueThisMonth / budget) * 100) : 0;
   const diferencia = stats.revenueThisMonth - budget;
 
-  const now = new Date();
-  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
-  const monthAppointments = appointments.filter(a => {
-    const d = new Date(a.date);
-    return d >= monthStart && d <= monthEnd && a.status !== 'cancelled' && a.status !== 'no-show';
-  });
-  const ordered = [...monthAppointments].sort((a, b) => b.date.localeCompare(a.date) || b.startTime.localeCompare(a.startTime));
+  const { ordered } = useMemo(() => {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+    const filtered = appointments.filter(a => {
+      const d = new Date(a.date);
+      return d >= monthStart && d <= monthEnd && a.status !== 'cancelled' && a.status !== 'no-show';
+    });
+    return {
+      ordered: [...filtered].sort((a, b) => b.date.localeCompare(a.date) || b.startTime.localeCompare(a.startTime)),
+    };
+  }, [appointments]);
 
   return (
     <div className="space-y-6">

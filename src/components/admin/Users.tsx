@@ -142,16 +142,17 @@ export function Users() {
       ) : (
         <>
           <div className="hidden sm:block bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-gray-50 text-gray-500">
-                <tr>
-                  <th className="text-left font-medium px-4 py-3">Nombre</th>
-                  <th className="text-left font-medium px-4 py-3">Correo</th>
-                  <th className="text-left font-medium px-4 py-3">Rol</th>
-                  <th className="text-left font-medium px-4 py-3">Estado</th>
-                  <th className="text-right font-medium px-4 py-3">Acciones</th>
-                </tr>
-              </thead>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[600px]">
+               <thead className="bg-gray-50 text-gray-500">
+                 <tr>
+                   <th className="text-left font-medium px-4 py-3 whitespace-nowrap">Nombre</th>
+                   <th className="text-left font-medium px-4 py-3 whitespace-nowrap">Correo</th>
+                   <th className="text-left font-medium px-4 py-3 whitespace-nowrap">Rol</th>
+                   <th className="text-left font-medium px-4 py-3 whitespace-nowrap">Estado</th>
+                   <th className="text-right font-medium px-4 py-3 whitespace-nowrap">Acciones</th>
+                 </tr>
+               </thead>
               <tbody className="divide-y divide-gray-100">
                 {users.map(u => (
                   <tr key={u.uid}>
@@ -204,10 +205,11 @@ export function Users() {
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+             </table>
+           </div>
+         </div>
 
-          {selectedUserMetricsUid && (
+         {selectedUserMetricsUid && (
             <UserMetrics therapistId={selectedUserMetricsUid} />
           )}
 

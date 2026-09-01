@@ -1,19 +1,33 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback, memo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card, CardBody, CardHeader } from '../ui/Card';
 import { formatCurrency, getAppointmentTypeLabel } from '../../utils/format';
 import { Patient } from '../../types';
+
+const MONTHS: Date[] = (() => {
+  const months: Date[] = [];
+  const now = new Date();
+  for (let i = 5; i >= 0; i--) {
+    months.push(new Date(now.getFullYear(), now.getMonth() - i, 1));
+  }
+  return months;
+})();
+
+const MONTH_LABELS: string[] = MONTHS.map(d => d.toLocaleDateString('es-MX', { month: 'short' }));
 
 function LineChart({ data, labels, color }: { data: number[]; labels: string[]; color: string }) {
   const max = Math.max(...data, 1);
   const min = Math.min(...data);
   const range = Math.max(max - min, 1);
 
-  const points = data.map((value, i) => {
-    const x = (i / (data.length - 1)) * 100;
-    const y = 100 - ((value - min + 5) / (range + 10)) * 90;
-    return `${x},${y}`;
-  }).join(' ');
+  const points = useMemo(() =>
+    data.map((value, i) => {
+      const x = (i / (data.length - 1)) * 100;
+      const y = 100 - ((value - min + 5) / (range + 10)) * 90;
+      return `${x},${y}`;
+    }).join(' '),
+    [data, min, range]
+  );
 
   return (
     <div>
@@ -41,15 +55,17 @@ function LineChart({ data, labels, color }: { data: number[]; labels: string[]; 
   );
 }
 
-function DonutChart({ segments }: { segments: { label: string; value: number; color: string; dot: string }[] }) {
+const DonutChart = memo(function DonutChart({ segments }: { segments: { label: string; value: number; color: string; dot: string }[] }) {
   const total = segments.reduce((acc, s) => acc + s.value, 0) || 1;
 
-  let cumulative = 0;
-  const circles = segments.map(s => {
-    const start = cumulative;
-    cumulative += s.value;
-    return { ...s, start, end: cumulative };
-  });
+  const circles = useMemo(() => {
+    let cumulative = 0;
+    return segments.map(s => {
+      const start = cumulative;
+      cumulative += s.value;
+      return { ...s, start, end: cumulative };
+    });
+  }, [segments]);
 
   const circumference = 2 * Math.PI * 45;
 
@@ -66,7 +82,7 @@ function DonutChart({ segments }: { segments: { label: string; value: number; co
               cy="60"
               r="45"
               fill="none"
-               stroke={s.color as string}
+              stroke={s.color as string}
               strokeWidth="12"
               strokeDasharray={`${dashLength} ${circumference - dashLength}`}
               strokeDashoffset={-((s.start / total) * circumference)}
@@ -85,99 +101,143 @@ function DonutChart({ segments }: { segments: { label: string; value: number; co
       </div>
     </div>
   );
+});
+
+function BarChart({ data, labels, color }: { data: number[]; labels: string[]; color: string }) {
+  const max = Math.max(...data, 1);
+
+  return (
+    <div className="flex items-end gap-3 h-48">
+      {data.map((v, i) => (
+        <div key={i} className="flex-1 flex flex-col items-center gap-2">
+          <span className="text-xs text-gray-600 font-medium">{v}</span>
+          <div
+            className={`w-full rounded-t-lg ${color} hover:opacity-80 transition-colors`}
+            style={{ height: `${(v / max) * 150}px` }}
+          />
+          <span className="text-xs text-gray-500">{labels[i]}</span>
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export default function Metrics() {
   const { patients, appointments, progressRecords, stats } = useApp();
   const [timeRange, setTimeRange] = useState('month');
 
-  const months: Date[] = [];
-  const now = new Date();
-  for (let i = 5; i >= 0; i--) {
-    months.push(new Date(now.getFullYear(), now.getMonth() - i, 1));
-  }
-  const monthLabels = months.map(d => d.toLocaleDateString('es-MX', { month: 'short' }));
-
-  const monthlyPatients = months.map(d =>
-    patients.filter(p => {
-      const dt = new Date(p.createdAt);
-      return dt.getFullYear() === d.getFullYear() && dt.getMonth() === d.getMonth();
-    }).length
+  const monthlyPatients = useMemo(() =>
+    MONTHS.map(d =>
+      patients.filter(p => {
+        const dt = new Date(p.createdAt);
+        return dt.getFullYear() === d.getFullYear() && dt.getMonth() === d.getMonth();
+      }).length
+    ),
+    [patients]
   );
 
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() - ((now.getDay() + 6) % 7));
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 7);
-  const weekLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-  const weeklySessions = weekLabels.map((_, i) => {
-    const day = new Date(weekStart);
-    day.setDate(weekStart.getDate() + i);
-    return appointments.filter(a => {
-      const dt = new Date(a.date);
-      return dt >= weekStart && dt < weekEnd && dt.getDay() === (i + 1) % 7;
-    }).length;
-  });
+  const weeklySessions = useMemo(() => {
+    const now = new Date();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 7);
 
-  const appointmentTypes = appointments.reduce((acc, a) => {
-    acc[a.type] = (acc[a.type] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+    const labels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+    return labels.map((_, i) => {
+      const day = new Date(weekStart);
+      day.setDate(weekStart.getDate() + i);
+      return appointments.filter(a => {
+        const dt = new Date(a.date);
+        return dt >= weekStart && dt < weekEnd && dt.getDay() === (i + 1) % 7;
+      }).length;
+    });
+  }, [appointments]);
 
-  const typeColor: Record<string, { color: string; dot: string }> = {
-    evaluation: { color: 'var(--color-clay)', dot: 'bg-clay' },
-    treatment: { color: 'var(--color-primary)', dot: 'bg-primary' },
-    'follow-up': { color: 'var(--color-secondary)', dot: 'bg-secondary' },
-    're-evaluation': { color: 'var(--color-accent)', dot: 'bg-accent' },
-  };
-  const donutSegments = Object.entries(appointmentTypes).map(([type, value]) => ({
-    label: getAppointmentTypeLabel(type),
-    value,
-    ...(typeColor[type] || { color: 'var(--color-primary)', dot: 'bg-primary' }),
-  }));
+  const appointmentTypes = useMemo(() =>
+    appointments.reduce((acc, a) => {
+      acc[a.type] = (acc[a.type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>),
+    [appointments]
+  );
 
-  const patientWithMostProgress = progressRecords.length > 0
-    ? [...new Set(progressRecords.map(r => r.patientId))].length
-    : 0;
+  const donutSegments = useMemo(() => {
+    const typeColor: Record<string, { color: string; dot: string }> = {
+      evaluation: { color: 'var(--color-clay)', dot: 'bg-clay' },
+      treatment: { color: 'var(--color-primary)', dot: 'bg-primary' },
+      'follow-up': { color: 'var(--color-secondary)', dot: 'bg-secondary' },
+      're-evaluation': { color: 'var(--color-accent)', dot: 'bg-accent' },
+    };
+    return Object.entries(appointmentTypes).map(([type, value]) => ({
+      label: getAppointmentTypeLabel(type),
+      value,
+      ...(typeColor[type] || { color: 'var(--color-primary)', dot: 'bg-primary' }),
+    }));
+  }, [appointmentTypes]);
 
-  const averagePain = progressRecords.length > 0
-    ? Math.round(progressRecords.reduce((acc, r) => acc + r.painLevel, 0) / progressRecords.length * 10) / 10
-    : 0;
+  const patientWithMostProgress = useMemo(() =>
+    progressRecords.length > 0 ? [...new Set(progressRecords.map(r => r.patientId))].length : 0,
+    [progressRecords]
+  );
 
-  const averageRecovery = progressRecords.length > 0
-    ? Math.round(progressRecords.reduce((acc, r) => acc + ((r.mobilityScore + r.strengthScore + r.functionalScore) / 3), 0) / progressRecords.length * 10) / 10
-    : 0;
+  const averagePain = useMemo(() =>
+    progressRecords.length > 0
+      ? Math.round(progressRecords.reduce((acc, r) => acc + r.painLevel, 0) / progressRecords.length * 10) / 10
+      : 0,
+    [progressRecords]
+  );
 
-  const budgetVsActual = {
+  const averageRecovery = useMemo(() =>
+    progressRecords.length > 0
+      ? Math.round(progressRecords.reduce((acc, r) => acc + ((r.mobilityScore + r.strengthScore + r.functionalScore) / 3), 0) / progressRecords.length * 10) / 10
+      : 0,
+    [progressRecords]
+  );
+
+  const budgetVsActual = useMemo(() => ({
     budget: 60000,
     actual: stats.revenueThisMonth,
-  };
-  const budgetPercentage = Math.round((budgetVsActual.actual / budgetVsActual.budget) * 100);
+  }), [stats.revenueThisMonth]);
 
-  const patientsByAge = patients.reduce((acc: Record<string, number>, p: Patient) => {
-    const age = new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear();
-    const range = age < 18 ? '<18' : age < 30 ? '18-29' : age < 45 ? '30-44' : age < 60 ? '45-59' : '60+';
-    acc[range] = (acc[range] || 0) + 1;
-    return acc;
-  }, {});
+  const budgetPercentage = useMemo(() =>
+    Math.round((budgetVsActual.actual / budgetVsActual.budget) * 100),
+    [budgetVsActual]
+  );
 
-  const byTherapist = appointments.reduce((acc: Record<string, { sessions: number; patients: Set<string> }>, a) => {
-    if (!acc[a.therapistName]) acc[a.therapistName] = { sessions: 0, patients: new Set() };
-    acc[a.therapistName].sessions += 1;
-    acc[a.therapistName].patients.add(a.patientId);
-    return acc;
-  }, {});
-  const specialists = Object.entries(byTherapist).map(([name, data]) => ({
-    name,
-    patients: data.patients.size,
-    sessions: data.sessions,
-  }));
+  const patientsByAge = useMemo(() =>
+    patients.reduce((acc: Record<string, number>, p: Patient) => {
+      const age = new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear();
+      const range = age < 18 ? '<18' : age < 30 ? '18-29' : age < 45 ? '30-44' : age < 60 ? '45-59' : '60+';
+      acc[range] = (acc[range] || 0) + 1;
+      return acc;
+    }, {}),
+    [patients]
+  );
+
+  const specialists = useMemo(() => {
+    const byTherapist = appointments.reduce((acc: Record<string, { sessions: number; patients: Set<string> }>, a) => {
+      if (!acc[a.therapistName]) acc[a.therapistName] = { sessions: 0, patients: new Set() };
+      acc[a.therapistName].sessions += 1;
+      acc[a.therapistName].patients.add(a.patientId);
+      return acc;
+    }, {});
+    return Object.entries(byTherapist).map(([name, data]) => ({
+      name,
+      patients: data.patients.size,
+      sessions: data.sessions,
+    }));
+  }, [appointments]);
 
   const totalAppointments = appointments.length || 1;
-  const completedAppointments = appointments.filter(a => a.status === 'completed').length;
-  const cancelledAppointments = appointments.filter(a => a.status === 'cancelled').length;
-  const noShowAppointments = appointments.filter(a => a.status === 'no-show').length;
-  const attendanceRate = Math.round((completedAppointments / totalAppointments) * 100);
+  const completedAppointments = useMemo(() => appointments.filter(a => a.status === 'completed').length, [appointments]);
+  const cancelledAppointments = useMemo(() => appointments.filter(a => a.status === 'cancelled').length, [appointments]);
+  const noShowAppointments = useMemo(() => appointments.filter(a => a.status === 'no-show').length, [appointments]);
+  const attendanceRate = useMemo(() => Math.round((completedAppointments / totalAppointments) * 100), [completedAppointments, totalAppointments]);
+
+  const maxSessions = useMemo(() => Math.max(...specialists.map(s => s.sessions), 1), [specialists]);
+
+  const handleTimeRangeChange = useCallback((range: string) => setTimeRange(range), []);
 
   return (
     <div className="space-y-6">
@@ -190,7 +250,7 @@ export default function Metrics() {
           {['week', 'month', 'year'].map(range => (
             <button
               key={range}
-              onClick={() => setTimeRange(range)}
+              onClick={() => handleTimeRangeChange(range)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                 timeRange === range
                   ? 'bg-primary text-white'
@@ -241,7 +301,7 @@ export default function Metrics() {
             <p className="text-sm text-gray-500">Crecimiento mensual de pacientes</p>
           </CardHeader>
           <CardBody>
-            <LineChart data={monthlyPatients} labels={monthLabels} color="var(--color-primary)" />
+            <LineChart data={monthlyPatients} labels={MONTH_LABELS} color="var(--color-primary)" />
           </CardBody>
         </Card>
 
@@ -263,28 +323,14 @@ export default function Metrics() {
             <p className="text-sm text-gray-500">Citas semanales</p>
           </CardHeader>
           <CardBody>
-            <div className="flex items-end gap-3 h-48">
-              {weeklySessions.map((v, i) => {
-                const max = Math.max(...weeklySessions);
-                return (
-                  <div key={i} className="flex-1 flex flex-col items-center gap-2">
-                    <span className="text-xs text-gray-600 font-medium">{v}</span>
-                    <div
-                      className="w-full rounded-t-lg bg-primary hover:bg-primary transition-colors"
-                      style={{ height: `${(v / max) * 150}px` }}
-                    />
-                    <span className="text-xs text-gray-500">{weekLabels[i]}</span>
-                  </div>
-                );
-              })}
-            </div>
+            <BarChart data={weeklySessions} labels={['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']} color="bg-primary" />
           </CardBody>
         </Card>
 
         <Card>
           <CardHeader>
             <h3 className="text-lg font-semibold text-gray-900">Ingresos vs Presupuesto</h3>
-            <p className="text-sm text-gray-500">{now.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })}</p>
+            <p className="text-sm text-gray-500">{new Date().toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })}</p>
           </CardHeader>
           <CardBody>
             <div className="flex items-center justify-between mb-4">
@@ -314,31 +360,28 @@ export default function Metrics() {
         <CardHeader>
           <h3 className="text-lg font-semibold text-gray-900">Desempeño por Especialista</h3>
         </CardHeader>
-          <CardBody>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {specialists.length === 0 && (
-                <p className="text-sm text-gray-500 col-span-full">No hay sesiones registradas.</p>
-              )}
-              {specialists.map(s => {
-                const maxSessions = Math.max(...specialists.map(sp => sp.sessions), 1);
-                return (
-                  <div key={s.name} className="p-4 bg-gray-50 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium text-gray-900">{s.name}</p>
-                        <p className="text-xs text-gray-500">{s.sessions} sesiones · {s.patients} pacientes</p>
-                      </div>
-                    </div>
-                    <div className="mt-3">
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div className="bg-primary h-2 rounded-full" style={{ width: `${(s.sessions / maxSessions) * 100}%` }} />
-                      </div>
-                    </div>
+        <CardBody>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {specialists.length === 0 && (
+              <p className="text-sm text-gray-500 col-span-full">No hay sesiones registradas.</p>
+            )}
+            {specialists.map(s => (
+              <div key={s.name} className="p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{s.name}</p>
+                    <p className="text-xs text-gray-500">{s.sessions} sesiones · {s.patients} pacientes</p>
                   </div>
-                );
-              })}
-            </div>
-          </CardBody>
+                </div>
+                <div className="mt-3">
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-primary h-2 rounded-full" style={{ width: `${(s.sessions / maxSessions) * 100}%` }} />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </CardBody>
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
