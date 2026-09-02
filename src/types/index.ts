@@ -15,6 +15,7 @@ export interface Patient {
   medicalHistory: string;
   allergies: string;
   medications: string;
+  familyMedicalHistory: { member: string; condition: string }[];
   notes: string;
   createdAt: string;
   updatedAt: string;

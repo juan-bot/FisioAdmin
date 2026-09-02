@@ -4,10 +4,19 @@ import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Patient } from '../../types';
 
+interface FamilyHistoryEntry {
+  member: string;
+  condition: string;
+}
+
 interface PatientFormProps {
   patient: Patient | null;
   onClose: () => void;
 }
+
+const memberOptions = [
+  'Abuelo', 'Abuela', 'Padre', 'Madre', 'Hermano', 'Hermana', 'Tío', 'Tía', 'Primo', 'Prima', 'Hijo', 'Hija', 'Otro'
+];
 
 const emptyForm = {
   firstName: '',
@@ -23,12 +32,16 @@ const emptyForm = {
   medicalHistory: '',
   allergies: '',
   medications: '',
+  familyMedicalHistory: [] as FamilyHistoryEntry[],
   notes: '',
   status: 'active' as Patient['status'],
 };
 
 export function PatientForm({ patient, onClose }: PatientFormProps) {
   const { addPatient, updatePatient, currentTherapist } = useApp();
+  const initialHistory = patient && Array.isArray(patient.familyMedicalHistory)
+    ? patient.familyMedicalHistory
+    : [];
   const [form, setForm] = useState(() => {
     if (patient) {
       return {
@@ -45,6 +58,7 @@ export function PatientForm({ patient, onClose }: PatientFormProps) {
         medicalHistory: patient.medicalHistory,
         allergies: patient.allergies,
         medications: patient.medications,
+        familyMedicalHistory: initialHistory,
         notes: patient.notes,
         status: patient.status,
       };
@@ -55,7 +69,35 @@ export function PatientForm({ patient, onClose }: PatientFormProps) {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setForm(prev => ({ ...prev, [name]: value }));
+    if (name === 'phone' || name === 'emergencyPhone') {
+      const digits = value.replace(/\D/g, '').slice(0, 10);
+      const formatted = digits.length > 3 ? `${digits.slice(0, 3)}-${digits.slice(3)}` : digits;
+      setForm(prev => ({ ...prev, [name]: formatted }));
+    } else {
+      setForm(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleHistoryChange = (index: number, field: 'member' | 'condition', value: string) => {
+    setForm(prev => {
+      const newHistory = [...prev.familyMedicalHistory];
+      newHistory[index] = { ...newHistory[index], [field]: value };
+      return { ...prev, familyMedicalHistory: newHistory };
+    });
+  };
+
+  const addHistoryEntry = () => {
+    setForm(prev => ({
+      ...prev,
+      familyMedicalHistory: [...prev.familyMedicalHistory, { member: '', condition: '' }],
+    }));
+  };
+
+  const removeHistoryEntry = (index: number) => {
+    setForm(prev => ({
+      ...prev,
+      familyMedicalHistory: prev.familyMedicalHistory.filter((_, i) => i !== index),
+    }));
   };
 
   const handleSubmit = (e: FormEvent) => {
@@ -82,6 +124,7 @@ export function PatientForm({ patient, onClose }: PatientFormProps) {
       medicalHistory: form.medicalHistory,
       allergies: form.allergies,
       medications: form.medications,
+      familyMedicalHistory: form.familyMedicalHistory,
       notes: form.notes,
       status: form.status,
     };
@@ -181,6 +224,51 @@ export function PatientForm({ patient, onClose }: PatientFormProps) {
                 <option value="discharged">Dado de alta</option>
               </select>
             </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900 mb-3 text-primary">Antecedentes Familiares</h3>
+          <div className="space-y-2">
+            {form.familyMedicalHistory.map((entry, index) => (
+              <div key={index} className="flex gap-2 items-start">
+                <select
+                  className={inputClass + ' flex-1'}
+                  value={entry.member}
+                  onChange={(e) => handleHistoryChange(index, 'member', e.target.value)}
+                >
+                  <option value="">Seleccionar miembro</option>
+                  {memberOptions.map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+                <input
+                  className={inputClass + ' flex-1'}
+                  value={entry.condition}
+                  onChange={(e) => handleHistoryChange(index, 'condition', e.target.value)}
+                  placeholder="Condición (ej. diabetes, hipertensión)"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeHistoryEntry(index)}
+                  className="flex items-center justify-center w-10 h-10 rounded-lg bg-danger/10 text-danger hover:bg-danger/20 transition-colors flex-shrink-0 mt-1"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addHistoryEntry}
+              className="flex items-center gap-1 text-sm text-primary hover:text-primary-dark transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Agregar antecedente
+            </button>
           </div>
         </div>
 

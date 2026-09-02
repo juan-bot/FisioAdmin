@@ -188,6 +188,20 @@ export default function PatientDetail({ patientId, onBack }: { patientId: string
                   <p className="text-xs text-gray-500 font-medium">Antecedentes</p>
                   <p className="text-sm text-gray-900 mt-1">{patient.medicalHistory || 'Sin antecedentes registrados'}</p>
                 </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-medium">Antecedentes Familiares</p>
+                  {patient.familyMedicalHistory.length > 0 ? (
+                    <div className="mt-1 space-y-1">
+                      {patient.familyMedicalHistory.map((entry, i) => (
+                        <p key={i} className="text-sm text-gray-900">
+                          <span className="font-medium">{entry.member}:</span> {entry.condition}
+                        </p>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-900 mt-1">Sin antecedentes familiares</p>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-xs text-gray-500 font-medium">Alergias</p>

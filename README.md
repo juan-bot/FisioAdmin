@@ -4,6 +4,12 @@ A web application for managing a physiotherapy practice, built with **React 19**
 
 Elegant design focused on the healthcare field, using an **olive green** palette with earthy tones (sage, ochre and clay) that convey calm and professional trust. Fully responsive: the sidebar collapses on mobile and all grids adapt to screen size.
 
+## Demo
+
+Live demo deployed on GitHub Pages: [https://username.github.io/FisioAdmin/](https://username.github.io/FisioAdmin/)
+
+![FisioAdmin Demo](https://via.placeholder.com/1200x600.png?text=FisioAdmin+Demo+GIF)
+
 ## Features
 
 - **Dashboard**: General overview with stats for patients, appointments, prescriptions and revenue, including growth and monthly revenue charts.
