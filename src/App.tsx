@@ -177,7 +177,7 @@ function Header({ sidebarOpen, setSidebarOpen }: { sidebarOpen: boolean; setSide
         <div className="flex items-center gap-3">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="flex items-center justify-center w-11 h-11 rounded-lg bg-primary text-white hover-lift lg:w-8 lg:h-8"
+            className="flex items-center justify-center w-11 h-11 rounded-lg bg-primary text-white hover-lift lg:hidden"
             aria-label={sidebarOpen ? 'Cerrar menú' : 'Abrir menú'}
           >
             {sidebarOpen ? (
