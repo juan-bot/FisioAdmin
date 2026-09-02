@@ -81,6 +81,7 @@ function MainContent() {
   const { isAdmin } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [viewingPatientId, setViewingPatientId] = useState<string | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const navItems = isAdmin
     ? [...baseNavItems, { id: 'users', label: 'Usuarios', icon: icons.users }]
@@ -132,12 +133,12 @@ function MainContent() {
 
   return (
     <div className="h-screen overflow-hidden bg-gray-50 flex flex-col">
-      <Sidebar navItems={navItems} activeTab={activeTab} onTabChange={handleTabChange} />
+      <Sidebar navItems={navItems} activeTab={activeTab} onTabChange={handleTabChange} isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
       <div className="lg:pl-64 flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto">
-          <Header className="sticky top-0 z-10 w-full" />
-          <div className="px-4 pt-16 sm:px-6 sm:pt-20 lg:px-8 lg:pt-20 max-w-7xl mx-auto w-full">
-            <div className="mt-6">{renderContent()}</div>
+          <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+          <div className="px-4 pt-4 sm:px-6 sm:pt-4 lg:px-8 max-w-7xl mx-auto w-full">
+            <div className="mt-3">{renderContent()}</div>
           </div>
         </div>
         <Footer />
@@ -146,21 +147,35 @@ function MainContent() {
   );
 }
 
-function Header({ className }: { className?: string }) {
+function Header({ sidebarOpen, setSidebarOpen }: { sidebarOpen: boolean; setSidebarOpen: (v: boolean) => void }) {
   return (
-      <header className={`flex items-center justify-between lg:justify-end gap-4 bg-gray-50 dark:bg-[#16221a] h-14 ${className || ''}`}>
-        <div className="lg:hidden pl-12">
-          <h2 className="text-xl font-bold text-primary-dark dark:text-white">FisioAdmin</h2>
+      <header className="flex items-center justify-between bg-gray-50 dark:bg-[#16221a] h-14 sticky top-0 z-10 w-full">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 rounded-lg bg-primary text-white hover-lift lg:hidden"
+            aria-label={sidebarOpen ? 'Cerrar menú' : 'Abrir menú'}
+          >
+            {sidebarOpen ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
+          </button>
+          <h2 className="text-xl font-bold text-primary-dark dark:text-white lg:hidden">FisioAdmin</h2>
         </div>
-      <div className="flex items-center gap-4">
-        <ThemeToggle />
-        <div className="flex items-center gap-3 p-2 bg-white rounded-xl border border-gray-200 dark:bg-[#16221a] dark:border-[#2c4730]">
+        <div className="flex items-center gap-4">
           <div className="hidden sm:block text-right">
             <p className="text-sm font-medium text-gray-900">Hoy</p>
             <p className="text-xs text-gray-500">
               {new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
             </p>
           </div>
+          <ThemeToggle />
           <button className="relative p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -168,8 +183,7 @@ function Header({ className }: { className?: string }) {
             <span className="absolute top-1 right-1 w-2 h-2 bg-danger rounded-full" />
           </button>
         </div>
-      </div>
-    </header>
+      </header>
   );
 }
 

@@ -176,209 +176,354 @@
 }
 
 /* ===========================================================
-   Modo oscuro "vistoso": paleta verde-marca, gradientes y glows.
-   Se activa con la clase .dark en <html>.
+   Mejoras visuales modernas
    =========================================================== */
-.dark {
-  color-scheme: dark;
-  --dm-bg: #0d130e;
-  --dm-surface: #16221a;
-  --dm-surface-2: #1e2e22;
-  --dm-elev: #233626;
-  --dm-border: #2c4730;
-  --dm-brand: #a7c874;
-  --dm-brand-2: #c2e08a;
-  --dm-accent: #e3c878;
-}
 
-.dark body {
-  background-color: var(--dm-bg);
-  background-image: radial-gradient(1200px 600px at 100% -10%, rgba(167, 200, 116, 0.10), transparent 60%),
-                    radial-gradient(900px 500px at -10% 110%, rgba(227, 200, 120, 0.08), transparent 55%);
-  color: #e8efe6;
-}
+ /* Hover universal suave */
+ .hover-lift {
+   transition: transform 0.2s ease, box-shadow 0.2s ease;
+ }
+ .hover-lift:hover {
+   transform: translateY(-2px);
+   box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.15);
+ }
 
-.dark ::-webkit-scrollbar-thumb {
-  background: var(--dm-elev);
-  border-color: var(--dm-bg);
-}
+ /* Sombras mejoradas */
+ .shadow-brand {
+   box-shadow: 0 4px 20px -4px rgba(95, 107, 58, 0.25);
+ }
+ .shadow-brand-lg {
+   box-shadow: 0 10px 40px -8px rgba(95, 107, 58, 0.3);
+ }
+ .dark .shadow-brand {
+   box-shadow: 0 4px 20px -4px rgba(167, 200, 116, 0.2);
+ }
+ .dark .shadow-brand-lg {
+   box-shadow: 0 10px 40px -8px rgba(167, 200, 116, 0.25);
+ }
 
-.dark ::selection {
-  background: rgba(167, 200, 116, 0.35);
-  color: #fff;
-}
+ /* Glass morphism */
+ .glass {
+   background: rgba(255, 255, 255, 0.7);
+   backdrop-filter: blur(12px);
+   -webkit-backdrop-filter: blur(12px);
+   border: 1px solid rgba(255, 255, 255, 0.2);
+ }
+ .dark .glass {
+   background: rgba(22, 34, 26, 0.7);
+   backdrop-filter: blur(12px);
+   -webkit-backdrop-filter: blur(12px);
+   border: 1px solid rgba(167, 200, 116, 0.1);
+ }
 
-.dark .bg-white,
-.dark .bg-gray-50 {
-  background-color: var(--dm-surface) !important;
-}
+ /* Animaciones suaves */
+ @keyframes fadeIn {
+   from { opacity: 0; transform: translateY(8px); }
+   to { opacity: 1; transform: translateY(0); }
+ }
+ @keyframes slideIn {
+   from { opacity: 0; transform: translateX(-16px); }
+   to { opacity: 1; transform: translateX(0); }
+ }
+ @keyframes scaleIn {
+   from { opacity: 0; transform: scale(0.95); }
+   to { opacity: 1; transform: scale(1); }
+ }
 
-.dark .bg-gray-100,
-.dark .bg-gray-200 {
-  background-color: var(--dm-surface-2) !important;
-}
+ .animate-fade-in {
+   animation: fadeIn 0.3s ease-out;
+ }
+ .animate-slide-in {
+   animation: slideIn 0.3s ease-out;
+ }
+ .animate-scale-in {
+   animation: scaleIn 0.2s ease-out;
+ }
 
-.dark .bg-gray-300 {
-  background-color: var(--dm-elev) !important;
-}
+ /* Transiciones en tarjetas */
+ .card {
+   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+ }
+ .card:hover {
+   box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.12);
+ }
+ .dark .card:hover {
+   box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.5);
+ }
 
-.dark .text-gray-900,
-.dark .text-gray-800 {
-  color: #f3f8f1 !important;
-}
+ /* Botones mejorados */
+ .btn {
+   transition: all 0.15s ease;
+ }
+ .btn:active {
+   transform: scale(0.97);
+ }
 
-.dark .text-gray-700 {
-  color: #dde7da !important;
-}
+ /* Inputs mejorados */
+ .input {
+   transition: all 0.15s ease;
+ }
+ .input:focus {
+   box-shadow: 0 0 0 3px rgba(95, 107, 58, 0.15);
+ }
 
-.dark .text-gray-600 {
-  color: #b6c6b4 !important;
-}
+ /* Scrollbar mejorado */
+ .scrollable {
+   scrollbar-width: thin;
+   scrollbar-color: #d8dcd0 transparent;
+ }
+ .scrollable::-webkit-scrollbar {
+   width: 6px;
+ }
+ .scrollable::-webkit-scrollbar-track {
+   background: transparent;
+ }
+ .scrollable::-webkit-scrollbar-thumb {
+   background: #d8dcd0;
+   border-radius: 9999px;
+ }
+ .scrollable::-webkit-scrollbar-thumb:hover {
+   background: #c2c8b6;
+ }
 
-.dark .text-gray-500,
-.dark .text-gray-400 {
-  color: #8a9a88 !important;
-}
+ /* Bordes redondeados más suaves */
+ .rounded-xl {
+   border-radius: 12px;
+ }
 
-.dark .text-primary-dark {
-  color: var(--dm-brand-2) !important;
-}
+ /* Mejoras en la sidebar */
+ aside {
+   transition: transform 0.3s ease;
+ }
 
-.dark .text-primary {
-  color: var(--dm-brand) !important;
-}
+ /* Badge mejorado */
+ .badge {
+   transition: all 0.15s ease;
+ }
 
-.dark .text-accent,
-.dark .text-accent-dark {
-  color: var(--dm-accent) !important;
-}
+ /* Tablas mejoradas */
+ table {
+   border-collapse: separate;
+   border-spacing: 0;
+ }
+ table th {
+   position: sticky;
+   top: 0;
+   z-index: 10;
+ }
 
-/* Fondos "light" de marca -> tintes translúcidos en dark */
-.dark .bg-primary-light {
-  background-color: rgba(167, 200, 116, 0.14) !important;
-}
-.dark .bg-secondary-light {
-  background-color: rgba(167, 200, 116, 0.12) !important;
-}
-.dark .bg-accent-light {
-  background-color: rgba(227, 200, 120, 0.14) !important;
-}
-.dark .bg-danger-light {
-  background-color: rgba(220, 90, 70, 0.15) !important;
-}
-.dark .bg-clay-light {
-  background-color: rgba(200, 120, 90, 0.14) !important;
-}
-.dark .bg-success-light {
-  background-color: rgba(70, 170, 110, 0.15) !important;
-}
-.dark .bg-warning-light {
-  background-color: rgba(220, 170, 60, 0.15) !important;
-}
+ /* Hover en filas de tabla */
+ .hover-row:hover {
+   background-color: rgba(95, 107, 58, 0.04);
+ }
+ .dark .hover-row:hover {
+   background-color: rgba(167, 200, 116, 0.06);
+ }
 
-.dark .text-secondary-dark {
-  color: #cfe0b0 !important;
-}
-.dark .text-danger {
-  color: #f0a89a !important;
-}
-.dark .border-danger {
-  border-color: rgba(220, 90, 70, 0.4) !important;
-}
-.dark .border-secondary {
-  border-color: rgba(167, 200, 116, 0.4) !important;
-}
-.dark .border-primary {
-  border-color: rgba(167, 200, 116, 0.4) !important;
-}
-.dark .border-accent {
-  border-color: rgba(227, 200, 120, 0.4) !important;
-}
+ /* ===========================================================
+    Modo oscuro "vistoso": paleta verde-marca, gradientes y glows.
+    Se activa con la clase .dark en <html>.
+    =========================================================== */
+ .dark {
+   color-scheme: dark;
+   --dm-bg: #0d130e;
+   --dm-surface: #16221a;
+   --dm-surface-2: #1e2e22;
+   --dm-elev: #233626;
+   --dm-border: #2c4730;
+   --dm-brand: #a7c874;
+   --dm-brand-2: #c2e08a;
+   --dm-accent: #e3c878;
+ }
 
-.dark .border-gray-100,
-.dark .border-gray-200,
-.dark .border-gray-300,
-.dark .border-gray-400 {
-  border-color: var(--dm-border) !important;
-}
+ .dark body {
+   background-color: var(--dm-bg);
+   background-image: radial-gradient(1200px 600px at 100% -10%, rgba(167, 200, 116, 0.10), transparent 60%),
+                     radial-gradient(900px 500px at -10% 110%, rgba(227, 200, 120, 0.08), transparent 55%);
+   color: #e8efe6;
+ }
 
-.dark .divide-gray-100 > *,
-.dark .divide-gray-200 > *,
-.dark .divide-gray-300 > * {
-  border-color: var(--dm-border) !important;
-}
+ .dark ::-webkit-scrollbar-thumb {
+   background: var(--dm-elev);
+   border-color: var(--dm-bg);
+ }
 
-.dark .ring-gray-300 {
-  --tw-ring-color: #3c5b3f;
-}
+ .dark ::selection {
+   background: rgba(167, 200, 116, 0.35);
+   color: #fff;
+ }
 
-.dark input,
-.dark textarea,
-.dark select {
-  background-color: var(--dm-surface-2);
-  color: #e8efe6;
-  border-color: var(--dm-border);
-}
+ .dark .bg-white,
+ .dark .bg-gray-50 {
+   background-color: var(--dm-surface) !important;
+ }
 
-.dark input:focus,
-.dark textarea:focus,
-.dark select:focus {
-  border-color: var(--dm-brand);
-  box-shadow: 0 0 0 3px rgba(167, 200, 116, 0.25);
-}
+ .dark .bg-gray-100,
+ .dark .bg-gray-200 {
+   background-color: var(--dm-surface-2) !important;
+ }
 
-.dark input::placeholder,
-.dark textarea::placeholder {
-  color: #8a9a88;
-}
+ .dark .bg-gray-300 {
+   background-color: var(--dm-elev) !important;
+ }
 
-.dark label {
-  color: #b6c6b4;
-}
+ .dark .text-gray-900,
+ .dark .text-gray-800 {
+   color: #f3f8f1 !important;
+ }
 
-.dark thead {
-  background-color: var(--dm-surface) !important;
-  color: #8a9a88 !important;
-}
+ .dark .text-gray-700 {
+   color: #dde7da !important;
+ }
 
-.dark tbody {
-  color: #e8efe6;
-}
+ .dark .text-gray-600 {
+   color: #b6c6b4 !important;
+ }
 
-.dark tbody tr:hover {
-  background-color: rgba(167, 200, 116, 0.06) !important;
-}
+ .dark .text-gray-500,
+ .dark .text-gray-400 {
+   color: #8a9a88 !important;
+ }
 
-.dark .btn-ghost:hover {
-  background-color: var(--dm-surface-2);
-}
+ .dark .text-primary-dark {
+   color: var(--dm-brand-2) !important;
+ }
 
-.dark .btn-outline:hover {
-  background-color: rgba(167, 200, 116, 0.18);
-  border-color: var(--dm-brand);
-}
+ .dark .text-primary {
+   color: var(--dm-brand) !important;
+ }
 
-/* Tarjetas con profundidad y borde superior de marca */
-.dark .card {
-  background-color: var(--dm-surface) !important;
-  border-color: var(--dm-border) !important;
-  box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.7);
-}
+ .dark .text-accent,
+ .dark .text-accent-dark {
+   color: var(--dm-accent) !important;
+ }
 
-.dark .card-header {
-  background-color: var(--dm-surface-2) !important;
-  border-color: var(--dm-border) !important;
-}
+ /* Fondos "light" de marca -> tintes translúcidos en dark */
+ .dark .bg-primary-light {
+   background-color: rgba(167, 200, 116, 0.14) !important;
+ }
+ .dark .bg-secondary-light {
+   background-color: rgba(167, 200, 116, 0.12) !important;
+ }
+ .dark .bg-accent-light {
+   background-color: rgba(227, 200, 120, 0.14) !important;
+ }
+ .dark .bg-danger-light {
+   background-color: rgba(220, 90, 70, 0.15) !important;
+ }
+ .dark .bg-clay-light {
+   background-color: rgba(200, 120, 90, 0.14) !important;
+ }
+ .dark .bg-success-light {
+   background-color: rgba(70, 170, 110, 0.15) !important;
+ }
+ .dark .bg-warning-light {
+   background-color: rgba(220, 170, 60, 0.15) !important;
+ }
 
-/* Encabezados de sección con acento de marca */
-.dark .card-header h1,
-.dark .card-header h2,
-.dark .card-header h3 {
-  color: var(--dm-brand-2);
-}
+ .dark .text-secondary-dark {
+   color: #cfe0b0 !important;
+ }
+ .dark .text-danger {
+   color: #f0a89a !important;
+ }
+ .dark .border-danger {
+   border-color: rgba(220, 90, 70, 0.4) !important;
+ }
+ .dark .border-secondary {
+   border-color: rgba(167, 200, 116, 0.4) !important;
+ }
+ .dark .border-primary {
+   border-color: rgba(167, 200, 116, 0.4) !important;
+ }
+ .dark .border-accent {
+   border-color: rgba(227, 200, 120, 0.4) !important;
+ }
 
-/* Glow de marca para elementos activos/destacados */
-.dark .ring-brand-glow,
-.dark .shadow-brand-glow {
-  box-shadow: 0 0 0 1px rgba(167, 200, 116, 0.4), 0 0 18px -2px rgba(167, 200, 116, 0.45) !important;
-}
+ .dark .border-gray-100,
+ .dark .border-gray-200,
+ .dark .border-gray-300,
+ .dark .border-gray-400 {
+   border-color: var(--dm-border) !important;
+ }
+
+ .dark .divide-gray-100 > *,
+ .dark .divide-gray-200 > *,
+ .dark .divide-gray-300 > * {
+   border-color: var(--dm-border) !important;
+ }
+
+ .dark .ring-gray-300 {
+   --tw-ring-color: #3c5b3f;
+ }
+
+ .dark input,
+ .dark textarea,
+ .dark select {
+   background-color: var(--dm-surface-2);
+   color: #e8efe6;
+   border-color: var(--dm-border);
+ }
+
+ .dark input:focus,
+ .dark textarea:focus,
+ .dark select:focus {
+   border-color: var(--dm-brand);
+   box-shadow: 0 0 0 3px rgba(167, 200, 116, 0.25);
+ }
+
+ .dark input::placeholder,
+ .dark textarea::placeholder {
+   color: #8a9a88;
+ }
+
+ .dark label {
+   color: #b6c6b4;
+ }
+
+ .dark thead {
+   background-color: var(--dm-surface) !important;
+   color: #8a9a88 !important;
+ }
+
+ .dark tbody {
+   color: #e8efe6;
+ }
+
+ .dark tbody tr:hover {
+   background-color: rgba(167, 200, 116, 0.06) !important;
+ }
+
+ .dark .btn-ghost:hover {
+   background-color: var(--dm-surface-2);
+ }
+
+ .dark .btn-outline:hover {
+   background-color: rgba(167, 200, 116, 0.18);
+   border-color: var(--dm-brand);
+ }
+
+ /* Tarjetas con profundidad y borde superior de marca */
+ .dark .card {
+   background-color: var(--dm-surface) !important;
+   border-color: var(--dm-border) !important;
+   box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.7);
+ }
+
+ .dark .card-header {
+   background-color: var(--dm-surface-2) !important;
+   border-color: var(--dm-border) !important;
+ }
+
+ /* Encabezados de sección con acento de marca */
+ .dark .card-header h1,
+ .dark .card-header h2,
+ .dark .card-header h3 {
+   color: var(--dm-brand-2);
+ }
+
+ /* Glow de marca para elementos activos/destacados */
+ .dark .ring-brand-glow,
+ .dark .shadow-brand-glow {
+   box-shadow: 0 0 0 1px rgba(167, 200, 116, 0.4), 0 0 18px -2px rgba(167, 200, 116, 0.45) !important;
+ }
