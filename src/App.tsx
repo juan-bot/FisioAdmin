@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppProvider } from './context/AppContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -82,6 +82,30 @@ function MainContent() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [viewingPatientId, setViewingPatientId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const touchStartX = useRef(0);
+  const touchStartY = useRef(0);
+  const isSwiping = useRef(false);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+    isSwiping.current = false;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const deltaX = e.touches[0].clientX - touchStartX.current;
+    const deltaY = Math.abs(e.touches[0].clientY - touchStartY.current);
+    if (deltaX > 30 && deltaX > deltaY) {
+      isSwiping.current = true;
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (isSwiping.current && !sidebarOpen) {
+      setSidebarOpen(true);
+    }
+    isSwiping.current = false;
+  };
 
   const navItems = isAdmin
     ? [...baseNavItems, { id: 'users', label: 'Usuarios', icon: icons.users }]
@@ -135,7 +159,7 @@ function MainContent() {
     <div className="h-screen overflow-hidden bg-gray-50 flex flex-col">
       <Sidebar navItems={navItems} activeTab={activeTab} onTabChange={handleTabChange} isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
       <div className="lg:pl-64 flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
           <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
           <div className="px-4 pt-4 sm:px-6 sm:pt-4 lg:px-8 max-w-7xl mx-auto w-full">
             <div className="mt-3">{renderContent()}</div>
@@ -149,19 +173,19 @@ function MainContent() {
 
 function Header({ sidebarOpen, setSidebarOpen }: { sidebarOpen: boolean; setSidebarOpen: (v: boolean) => void }) {
   return (
-      <header className="flex items-center justify-between bg-gray-50 dark:bg-[#16221a] h-14 sticky top-0 z-10 w-full">
+      <header className="flex items-center justify-between bg-gray-50 dark:bg-[#16221a] h-16 sticky top-0 z-10 w-full">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-2 rounded-lg bg-primary text-white hover-lift lg:hidden"
+            className="flex items-center justify-center w-11 h-11 rounded-lg bg-primary text-white hover-lift lg:w-8 lg:h-8"
             aria-label={sidebarOpen ? 'Cerrar menú' : 'Abrir menú'}
           >
             {sidebarOpen ? (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
             ) : (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             )}
