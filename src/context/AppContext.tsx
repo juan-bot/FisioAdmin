@@ -65,11 +65,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
     let active = true;
     setLoading(true);
+    const therapistId = profile?.uid || '';
     Promise.all([
-      fetchPatients(),
-      fetchAppointments(),
-      fetchPrescriptions(),
-      fetchProgressRecords(),
+      fetchPatients(therapistId),
+      fetchAppointments(therapistId),
+      fetchPrescriptions(therapistId),
+      fetchProgressRecords(therapistId),
     ])
       .then(([p, a, pr, pg]) => {
         if (!active) return;

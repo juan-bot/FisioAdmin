@@ -19,6 +19,7 @@ export interface Patient {
   createdAt: string;
   updatedAt: string;
   status: 'active' | 'inactive' | 'discharged';
+  therapistId: string;
 }
 
 export interface Appointment {

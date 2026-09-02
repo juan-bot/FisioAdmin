@@ -133,20 +133,22 @@ function MainContent() {
   return (
     <div className="h-screen overflow-hidden bg-gray-50 flex flex-col">
       <Sidebar navItems={navItems} activeTab={activeTab} onTabChange={handleTabChange} />
-      <main className="lg:pl-64 pt-14 lg:pt-0 flex-1 flex flex-col overflow-hidden">
-        <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full flex-1 overflow-y-auto">
-          <Header className="sticky top-0 z-10" />
-          <div className="mt-6">{renderContent()}</div>
+      <div className="lg:pl-64 flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 overflow-y-auto">
+          <Header className="sticky top-0 z-10 w-full" />
+          <div className="px-4 pt-16 sm:px-6 sm:pt-20 lg:px-8 lg:pt-20 max-w-7xl mx-auto w-full">
+            <div className="mt-6">{renderContent()}</div>
+          </div>
         </div>
         <Footer />
-      </main>
+      </div>
     </div>
   );
 }
 
 function Header({ className }: { className?: string }) {
   return (
-      <header className={`flex items-center justify-between lg:justify-end gap-4 bg-gray-50 dark:bg-[#16221a] ${className || ''}`}>
+      <header className={`flex items-center justify-between lg:justify-end gap-4 bg-gray-50 dark:bg-[#16221a] h-14 ${className || ''}`}>
         <div className="lg:hidden pl-12">
           <h2 className="text-xl font-bold text-primary-dark dark:text-white">FisioAdmin</h2>
         </div>

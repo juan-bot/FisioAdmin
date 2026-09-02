@@ -28,7 +28,7 @@ const emptyForm = {
 };
 
 export function PatientForm({ patient, onClose }: PatientFormProps) {
-  const { addPatient, updatePatient } = useApp();
+  const { addPatient, updatePatient, currentTherapist } = useApp();
   const [form, setForm] = useState(() => {
     if (patient) {
       return {
@@ -66,6 +66,7 @@ export function PatientForm({ patient, onClose }: PatientFormProps) {
     }
 
     const patientData = {
+      ...(!patient && { therapistId: currentTherapist.id }),
       firstName: form.firstName,
       lastName: form.lastName,
       email: form.email,

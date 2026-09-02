@@ -4,6 +4,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
+  updateProfile,
   User,
   sendPasswordResetEmail,
 } from 'firebase/auth';
@@ -49,21 +50,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       try {
-        let prof = await fetchUserProfile(fbUser.uid);
-        
-        if (!prof) {
-          const first = await isFirstUser();
-          prof = {
-            uid: fbUser.uid,
-            email: fbUser.email || '',
-            displayName: fbUser.displayName || (fbUser.email ? fbUser.email.split('@')[0] : 'Usuario'),
-            role: first ? 'admin' : 'pending',
-            approved: first,
-            disabled: false,
-            createdAt: new Date().toISOString(),
-          };
-          await createUserProfile(prof);
-        }
+         let prof = await fetchUserProfile(fbUser.uid);
+         
+         if (!prof) {
+           const first = await isFirstUser();
+           prof = {
+             uid: fbUser.uid,
+             email: fbUser.email || '',
+             displayName: fbUser.displayName || (fbUser.email ? fbUser.email.split('@')[0] : 'Usuario'),
+             role: first ? 'admin' : 'pending',
+             approved: first,
+             disabled: false,
+             createdAt: new Date().toISOString(),
+           };
+           await createUserProfile(prof);
+         }
+         
+         if (prof.displayName && prof.displayName !== fbUser.displayName) {
+           await updateProfile(fbUser, { displayName: prof.displayName });
+         }
         
         if (prof.deletedAt) {
           // Reactivate deleted account on sign-in (after password reset)
@@ -112,11 +117,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (email: string, password: string, displayName: string) => {
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
+      const name = displayName || email.split('@')[0];
+      await updateProfile(cred.user, { displayName: name });
       const first = await isFirstUser();
       const prof: UserProfile = {
         uid: cred.user.uid,
         email,
-        displayName: displayName || email.split('@')[0],
+        displayName: name,
         role: first ? 'admin' : 'pending',
         approved: first,
         disabled: false,
