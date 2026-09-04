@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useRef, useState, FormEvent } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
@@ -66,6 +66,8 @@ export function PatientForm({ patient, onClose }: PatientFormProps) {
     return emptyForm;
   });
   const [error, setError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const submissionInFlight = useRef(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -102,6 +104,7 @@ export function PatientForm({ patient, onClose }: PatientFormProps) {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (submissionInFlight.current) return;
     if (!form.firstName || !form.lastName || !form.phone) {
       setError('Campos obligatorios: Nombre, Apellido y Teléfono');
       return;
@@ -129,12 +132,21 @@ export function PatientForm({ patient, onClose }: PatientFormProps) {
       status: form.status,
     };
 
-    if (patient) {
-      await updatePatient(patient.id, patientData);
-    } else {
-      await addPatient(patientData);
+    submissionInFlight.current = true;
+    setIsSaving(true);
+    try {
+      if (patient) {
+        await updatePatient(patient.id, patientData);
+      } else {
+        await addPatient(patientData);
+      }
+      onClose();
+    } catch {
+      setError(patient ? 'No fue posible actualizar al paciente. Intenta nuevamente.' : 'No fue posible crear al paciente. Intenta nuevamente.');
+    } finally {
+      submissionInFlight.current = false;
+      setIsSaving(false);
     }
-    onClose();
   };
 
   const inputClass = "w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200";
@@ -278,8 +290,8 @@ export function PatientForm({ patient, onClose }: PatientFormProps) {
         </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
-          <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button type="submit">{patient ? 'Guardar Cambios' : 'Crear Paciente'}</Button>
+          <Button type="button" variant="outline" onClick={onClose} disabled={isSaving}>Cancelar</Button>
+          <Button type="submit" disabled={isSaving}>{isSaving ? 'Guardando...' : patient ? 'Guardar Cambios' : 'Crear Paciente'}</Button>
         </div>
       </form>
     </Modal>
