@@ -7,6 +7,7 @@ import { Prescription, Treatment } from '../../types';
 
 interface PrescriptionFormProps {
   prescription: Prescription | null;
+  initialPatientId?: string;
   onClose: () => void;
 }
 
@@ -20,7 +21,7 @@ const emptyTreatment: Omit<Treatment, 'id'> = {
   notes: '',
 };
 
-export function PrescriptionForm({ prescription, onClose }: PrescriptionFormProps) {
+export function PrescriptionForm({ prescription, initialPatientId = '', onClose }: PrescriptionFormProps) {
   const { patients, addPrescription, updatePrescription } = useApp();
   const { profile, refreshProfile } = useAuth();
 
@@ -40,7 +41,7 @@ export function PrescriptionForm({ prescription, onClose }: PrescriptionFormProp
   }, [refreshProfile]);
 
   const [form, setForm] = useState(() => ({
-    patientId: prescription?.patientId || '',
+    patientId: prescription?.patientId || initialPatientId,
     date: prescription?.date || new Date().toISOString().split('T')[0],
     diagnosis: prescription?.diagnosis || '',
     frequency: prescription?.frequency || '',
@@ -70,7 +71,7 @@ export function PrescriptionForm({ prescription, onClose }: PrescriptionFormProp
     setTreatments(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!form.patientId) {
       setError('Selecciona un paciente');
@@ -105,9 +106,9 @@ export function PrescriptionForm({ prescription, onClose }: PrescriptionFormProp
     };
 
     if (prescription) {
-      updatePrescription(prescription.id, prescriptionData);
+      await updatePrescription(prescription.id, prescriptionData);
     } else {
-      addPrescription(prescriptionData);
+      await addPrescription(prescriptionData);
     }
     onClose();
   };

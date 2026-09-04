@@ -21,6 +21,95 @@ export interface Patient {
   updatedAt: string;
   status: 'active' | 'inactive' | 'discharged';
   therapistId: string;
+  demographics?: {
+    placeOfOrigin: string;
+    education: string;
+    occupation: string;
+    maritalStatus: string;
+    religion: string;
+  };
+  clinicalAssessment?: ClinicalAssessment;
+}
+
+export interface BilateralMeasurement {
+  name: string;
+  movement?: string;
+  reference?: string;
+  right: string;
+  left: string;
+}
+
+export interface ClinicalAssessment {
+  assessmentDate: string;
+  therapistName: string;
+  reasonForConsultation: string;
+  nonPathologicalHistory: {
+    smoking: string;
+    alcohol: string;
+    drugs: string;
+    physicalActivity: string;
+    mealsPerDay: string;
+    housing: string;
+  };
+  gynecologicalHistory: {
+    menarche: string;
+    pregnancies: string;
+    births: string;
+    abortions: string;
+  };
+  pathologicalHistory: {
+    diseases: string;
+    detectionDate: string;
+    trauma: string;
+    hospitalizations: string;
+    surgeries: string;
+  };
+  vitalSigns: {
+    bloodPressure: string;
+    heartRate: string;
+    respiratoryRate: string;
+    temperature: string;
+    glucose: string;
+    oxygenSaturation: string;
+    height: string;
+    weight: string;
+  };
+  painAssessment: {
+    onset: string;
+    location: string;
+    radiation: string;
+    characteristics: string;
+    intensity: string;
+    aggravatingFactors: string;
+  };
+  posturalFindings: string;
+  gait: {
+    independent: boolean;
+    assistiveDevice: string;
+    observations: string;
+  };
+  goniometry: BilateralMeasurement[];
+  muscleStrength: BilateralMeasurement[];
+  reflexes: BilateralMeasurement[];
+  sensitivity: string;
+  specialTests: string;
+  physiotherapyDiagnosis: string;
+  notes: string;
+}
+
+export interface TherapeuticReportData {
+  date: string;
+  addressee: string;
+  diagnosis: string;
+  clinicalStatus: string;
+  recommendations: string[];
+  returnPlan: string;
+  therapistName: string;
+  professionalLicense: string;
+  clinicName: string;
+  phone: string;
+  email: string;
+  address: string;
 }
 
 export interface Appointment {
@@ -35,9 +124,23 @@ export interface Appointment {
   therapistId: string;
   therapistName: string;
   notes: string;
+  sessionNote?: SessionNote;
   amount?: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface SessionNote {
+  arrivalStatus: string;
+  painBefore: number | null;
+  clinicalFindings: string;
+  interventions: string;
+  patientResponse: string;
+  painAfter: number | null;
+  homeInstructions: string;
+  nextSessionPlan: string;
+  alerts: string;
+  completedAt: string;
 }
 
 export interface Prescription {

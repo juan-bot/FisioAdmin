@@ -100,7 +100,7 @@ export function PatientForm({ patient, onClose }: PatientFormProps) {
     }));
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!form.firstName || !form.lastName || !form.phone) {
       setError('Campos obligatorios: Nombre, Apellido y Teléfono');
@@ -130,9 +130,9 @@ export function PatientForm({ patient, onClose }: PatientFormProps) {
     };
 
     if (patient) {
-      updatePatient(patient.id, patientData);
+      await updatePatient(patient.id, patientData);
     } else {
-      addPatient(patientData);
+      await addPatient(patientData);
     }
     onClose();
   };

@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useApp } from '../../context/AppContext';
-import { fetchAppointmentsByTherapist } from '../../firebase/db';
+import { fetchAppointmentsByTherapist, fetchPatientsByTherapist, fetchProgressRecordsByTherapist } from '../../firebase/db';
 import { Card, CardBody, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import {
@@ -18,19 +17,20 @@ function parseAmount(val: any): number {
   return isNaN(n) ? 0 : n;
 }
 
-export function UserMetrics({ therapistId }: { therapistId: string }) {
-  const { patients } = useApp();
+export function UserMetrics({ therapistId, therapistName }: { therapistId: string; therapistName?: string }) {
   const [timeRange, setTimeRange] = useState<TimeRange>('month');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
   const [appointments, setAppointments] = useState<any[]>([]);
+  const [patients, setPatients] = useState<any[]>([]);
+  const [progressRecords, setProgressRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshTick, setRefreshTick] = useState(0);
 
   useEffect(() => {
     let active = true;
-    fetchAppointmentsByTherapist(therapistId)
-      .then(data => { if (active) setAppointments(data); })
+    Promise.all([fetchAppointmentsByTherapist(therapistId), fetchPatientsByTherapist(therapistId), fetchProgressRecordsByTherapist(therapistId)])
+      .then(([appointmentData, patientData, progressData]) => { if (active) { setAppointments(appointmentData); setPatients(patientData); setProgressRecords(progressData); } })
       .catch(() => undefined)
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -77,11 +77,23 @@ export function UserMetrics({ therapistId }: { therapistId: string }) {
   }, [appointments, timeRange, startDate, endDate]);
 
   const metrics = useMemo(() => {
+    const completed = filteredAppointments.filter(a => a.status === 'completed');
+    // El sistema registra el cobro como monto en la cita; aún no existe un estado de pago separado.
     const totalSales = filteredAppointments.reduce((sum, a) => sum + parseAmount(a.amount), 0);
     const totalAppointments = filteredAppointments.length;
     const uniquePatients = new Set(filteredAppointments.map((a: any) => a.patientId)).size;
-    return { totalSales, totalAppointments, uniquePatients };
+    const documentedSessions = completed.filter(a => a.sessionNote).length;
+    const attendanceRate = totalAppointments ? Math.round((completed.length / totalAppointments) * 100) : 0;
+    const notesWithPain = completed.filter(a => a.sessionNote?.painBefore !== null && a.sessionNote?.painAfter !== null);
+    const averagePainChange = notesWithPain.length ? Math.round((notesWithPain.reduce((sum, a) => sum + (a.sessionNote.painAfter - a.sessionNote.painBefore), 0) / notesWithPain.length) * 10) / 10 : null;
+    return { totalSales, totalAppointments, uniquePatients, completedSessions: completed.length, documentedSessions, attendanceRate, averagePainChange };
   }, [filteredAppointments]);
+
+  const clinicalMetrics = useMemo(() => {
+    const relevant = progressRecords.filter(record => filteredAppointments.some(appointment => appointment.patientId === record.patientId && appointment.date <= record.date));
+    const averageRecovery = relevant.length ? Math.round(relevant.reduce((sum, record) => sum + (record.mobilityScore + record.strengthScore + record.functionalScore) / 3, 0) / relevant.length) : 0;
+    return { activePatients: patients.filter(patient => patient.status === 'active').length, progressEntries: relevant.length, averageRecovery };
+  }, [patients, progressRecords, filteredAppointments]);
 
   const salesByPeriod = useMemo(() => {
     const grouped: Record<string, number> = {};
@@ -165,7 +177,7 @@ export function UserMetrics({ therapistId }: { therapistId: string }) {
     <Card className="space-y-6">
       <CardHeader>
         <div className="flex items-center justify-between flex-wrap gap-4">
-          <h3 className="text-lg font-semibold text-gray-900">Métricas del Terapeuta</h3>
+          <div><h3 className="text-lg font-semibold text-gray-900">Métricas del terapeuta</h3>{therapistName && <p className="mt-1 text-sm text-slate-500">{therapistName}</p>}</div>
           <div className="flex items-center gap-2 flex-wrap">
             <select
               value={timeRange}
@@ -204,19 +216,33 @@ export function UserMetrics({ therapistId }: { therapistId: string }) {
       </CardHeader>
 
       <CardBody>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <div className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl border border-primary/20">
-            <p className="text-sm text-gray-500 font-medium">Ventas Totales</p>
+            <p className="text-sm text-gray-500 font-medium">Ingresos registrados</p>
             <p className="text-2xl font-bold text-primary-dark mt-1">{metrics.totalSales > 0 ? metrics.totalSales.toLocaleString('es-MX', { style: 'currency', currency: 'MXN' }) : '$0'}</p>
+            <p className="mt-1 text-xs text-gray-500">Montos capturados en citas vigentes</p>
           </div>
           <div className="p-4 bg-gradient-to-br from-secondary/10 to-secondary/5 rounded-xl border border-secondary/20">
-            <p className="text-sm text-gray-500 font-medium">Citas</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">{metrics.totalAppointments}</p>
+            <p className="text-sm text-gray-500 font-medium">Sesiones realizadas</p>
+            <p className="text-2xl font-bold text-gray-900 mt-1">{metrics.completedSessions}</p>
+            <p className="mt-1 text-xs text-gray-500">{metrics.attendanceRate}% de asistencia</p>
           </div>
           <div className="p-4 bg-gradient-to-br from-accent/10 to-accent/5 rounded-xl border border-accent/20">
-            <p className="text-sm text-gray-500 font-medium">Pacientes Únicos</p>
-            <p className="text-2xl font-bold text-gray-900 mt-1">{totalPatientsUnique}</p>
+            <p className="text-sm text-gray-500 font-medium">Pacientes activos</p>
+            <p className="text-2xl font-bold text-gray-900 mt-1">{clinicalMetrics.activePatients}</p>
+            <p className="mt-1 text-xs text-gray-500">{totalPatientsUnique} atendidos en el período</p>
           </div>
+          <div className="p-4 bg-gradient-to-br from-clay/10 to-clay/5 rounded-xl border border-clay/20">
+            <p className="text-sm text-gray-500 font-medium">Notas de sesión</p>
+            <p className="text-2xl font-bold text-gray-900 mt-1">{metrics.documentedSessions}/{metrics.completedSessions}</p>
+            <p className="mt-1 text-xs text-gray-500">{metrics.completedSessions ? Math.round((metrics.documentedSessions / metrics.completedSessions) * 100) : 0}% documentadas</p>
+          </div>
+        </div>
+
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800"><p className="text-xs font-semibold text-slate-400">Registros de evolución</p><p className="mt-1 text-xl font-extrabold text-slate-900 dark:text-white">{clinicalMetrics.progressEntries}</p></div>
+          <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800"><p className="text-xs font-semibold text-slate-400">Recuperación promedio</p><p className="mt-1 text-xl font-extrabold text-slate-900 dark:text-white">{clinicalMetrics.averageRecovery}%</p></div>
+          <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800"><p className="text-xs font-semibold text-slate-400">Cambio de dolor por sesión</p><p className="mt-1 text-xl font-extrabold text-slate-900 dark:text-white">{metrics.averagePainChange === null ? 'Sin datos' : `${metrics.averagePainChange > 0 ? '+' : ''}${metrics.averagePainChange}`}</p></div>
         </div>
 
         {filteredAppointments.length === 0 ? (

@@ -4,13 +4,15 @@ import { Card, CardBody, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { AppointmentForm } from './AppointmentForm';
+import { SessionNoteForm } from './SessionNoteForm';
 import { getStatusLabel, getAppointmentTypeLabel, formatTime, formatCurrency } from '../../utils/format';
 import { Appointment } from '../../types';
 
-export default function Appointments() {
+export default function Appointments({ initialCreate = false, initialPatientId = '', onInitialCreateHandled }: { initialCreate?: boolean; initialPatientId?: string; onInitialCreateHandled?: () => void }) {
   const { appointments, updateAppointment, deleteAppointment } = useApp();
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(initialCreate);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+  const [sessionAppointment, setSessionAppointment] = useState<Appointment | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Appointment | null>(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
@@ -118,6 +120,7 @@ export default function Appointments() {
                     {['scheduled', 'confirmed', 'completed', 'cancelled', 'no-show'].map(s => <option key={s} value={s}>{getStatusLabel(s)}</option>)}
                   </select>
                   <div className="flex items-center gap-1">
+                    <button onClick={() => setSessionAppointment(a)} className="rounded-lg px-2 py-2 text-xs font-bold text-primary hover:bg-primary-light" aria-label={`Registrar sesión de ${a.patientName}`}>{a.sessionNote ? 'Ver sesión' : 'Sesión'}</button>
                     <button onClick={() => handleEdit(a)} className="rounded-lg p-2 text-slate-400 hover:bg-primary-light hover:text-primary" aria-label={`Editar cita de ${a.patientName}`}><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.414-9.414a2 2 0 1 1 2.828 2.828L11.828 15H9v-2.828z" /></svg></button>
                     <button onClick={() => handleDeleteConfirm(a)} className="rounded-lg p-2 text-slate-400 hover:bg-danger-light hover:text-danger" aria-label={`Eliminar cita de ${a.patientName}`}><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6M4 7h16" /></svg></button>
                   </div>
@@ -181,6 +184,7 @@ export default function Appointments() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
+                        <button onClick={() => setSessionAppointment(a)} className="rounded-lg px-2 py-1.5 text-xs font-bold text-primary hover:bg-primary-light" title={a.sessionNote ? 'Ver o editar nota de sesión' : 'Registrar nota de sesión'}>{a.sessionNote ? 'Ver sesión' : 'Sesión'}</button>
                         <button
                           onClick={() => handleEdit(a)}
                           className="p-1.5 text-gray-500 hover:text-primary hover:bg-primary-light rounded-lg transition-colors"
@@ -217,9 +221,11 @@ export default function Appointments() {
       {showForm && (
         <AppointmentForm
           appointment={editingAppointment}
-          onClose={() => { setShowForm(false); setEditingAppointment(null); }}
+          initialPatientId={initialPatientId}
+          onClose={() => { setShowForm(false); setEditingAppointment(null); onInitialCreateHandled?.(); }}
         />
       )}
+      {sessionAppointment && <SessionNoteForm appointment={sessionAppointment} onClose={() => setSessionAppointment(null)} />}
 
       <Modal isOpen={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Eliminar Cita" size="sm">
         <p className="text-gray-700">

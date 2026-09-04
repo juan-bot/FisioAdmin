@@ -6,7 +6,7 @@ import { BrandLogo } from '../ui/BrandLogo';
 type Mode = 'login' | 'register';
 
 export function AuthScreen() {
-  const { login, register, error: authError } = useAuth();
+  const { login, register, resetPassword, error: authError } = useAuth();
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -43,6 +43,18 @@ export function AuthScreen() {
       setError(err?.message?.startsWith('Esta cuenta fue eliminada') ? err.message : translateError(err?.code));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    setError('');
+    setInfo('');
+    if (!email) { setError('Escribe tu correo para enviarte el enlace de recuperación.'); return; }
+    try {
+      await resetPassword(email);
+      setInfo('Te enviamos un enlace para restablecer tu contraseña. Revisa también tu carpeta de correo no deseado.');
+    } catch (err: any) {
+      setError(translateError(err?.code));
     }
   };
 
@@ -121,7 +133,7 @@ export function AuthScreen() {
           </div>
 
           <div>
-            <label className={labelClass}>Contraseña <span className="text-danger">*</span></label>
+            <div className="mb-1.5 flex items-center justify-between"><label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Contraseña <span className="text-danger">*</span></label>{mode === 'login' && <button type="button" onClick={handlePasswordReset} className="text-xs font-semibold text-primary hover:text-primary-hover">¿La olvidaste?</button>}</div>
             <input required type="password" className={inputClass} value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
           </div>
 

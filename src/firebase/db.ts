@@ -34,6 +34,16 @@ export async function fetchPatients(therapistId: string): Promise<Patient[]> {
   return snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Patient, 'id'>) }));
 }
 
+export async function fetchPatientsByTherapist(therapistId: string): Promise<Patient[]> {
+  const snap = await getDocs(query(patientsCol, where('therapistId', '==', therapistId), limit(500)));
+  return snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Patient, 'id'>) }));
+}
+
+export async function fetchAllPatients(): Promise<Patient[]> {
+  const snap = await getDocs(query(patientsCol, limit(500)));
+  return snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Patient, 'id'>) }));
+}
+
 export async function createPatient(data: Omit<Patient, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
   const ref = await addDoc(patientsCol, { ...data, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
   return ref.id;
@@ -54,6 +64,11 @@ export async function fetchAppointments(therapistId: string): Promise<Appointmen
 
 export async function fetchAppointmentsByTherapist(therapistId: string): Promise<Appointment[]> {
   const snap = await getDocs(query(appointmentsCol, where('therapistId', '==', therapistId)));
+  return snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Appointment, 'id'>) }));
+}
+
+export async function fetchAllAppointments(): Promise<Appointment[]> {
+  const snap = await getDocs(query(appointmentsCol, limit(500)));
   return snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<Appointment, 'id'>) }));
 }
 
@@ -90,6 +105,16 @@ export async function deletePrescriptionDoc(id: string): Promise<void> {
 
 export async function fetchProgressRecords(therapistId: string): Promise<ProgressRecord[]> {
   const snap = await getDocs(query(progressCol, where('therapistId', '==', therapistId), orderBy('createdAt', 'desc'), limit(500)));
+  return snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<ProgressRecord, 'id'>) }));
+}
+
+export async function fetchProgressRecordsByTherapist(therapistId: string): Promise<ProgressRecord[]> {
+  const snap = await getDocs(query(progressCol, where('therapistId', '==', therapistId), limit(500)));
+  return snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<ProgressRecord, 'id'>) }));
+}
+
+export async function fetchAllProgressRecords(): Promise<ProgressRecord[]> {
+  const snap = await getDocs(query(progressCol, limit(500)));
   return snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<ProgressRecord, 'id'>) }));
 }
 

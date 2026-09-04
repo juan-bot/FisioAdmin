@@ -24,6 +24,11 @@ export function Sidebar({ navItems, activeTab, onTabChange, isOpen, setIsOpen }:
     .slice(0, 2)
     .join('')
     .toUpperCase();
+  const navigationGroups = [
+    { label: 'Organización', ids: ['dashboard', 'metrics', 'patients', 'appointments', 'calendar'] },
+    { label: 'Atención clínica', ids: ['prescriptions', 'progress'] },
+    { label: 'Administración', ids: ['finanzas', 'users'] },
+  ];
 
   return (
     <>
@@ -36,27 +41,16 @@ export function Sidebar({ navItems, activeTab, onTabChange, isOpen, setIsOpen }:
         <div className="flex flex-col h-full">
           <div className="px-5 pb-7 pt-6"><BrandLogo /></div>
 
-          <nav className="flex-1 px-3 overflow-y-auto">
-            <p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Espacio de trabajo</p>
-            <div className="space-y-1">
-            {navItems.map(item => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  onTabChange(item.id);
-                  setIsOpen(false);
-                }}
-                className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                  activeTab === item.id
-                    ? 'bg-primary text-white shadow-brand'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-white'
-                }`}
-              >
-                <span className={activeTab === item.id ? 'text-white' : 'text-slate-400 group-hover:text-primary'}>{item.icon}</span>
-                {item.label}
-              </button>
-            ))}
-            </div>
+          <nav className="min-h-0 flex-1 px-3 overflow-y-auto pb-3">
+            {navigationGroups.map(group => {
+              const items = navItems.filter(item => group.ids.includes(item.id));
+              if (items.length === 0) return null;
+              return <section key={group.label} className="mb-5"><p className="px-3 pb-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">{group.label}</p><div className="space-y-1">{items.map(item => (
+                <button key={item.id} onClick={() => { onTabChange(item.id); setIsOpen(false); }} className={`group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${activeTab === item.id ? 'bg-primary text-white shadow-brand' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-white'}`}>
+                  <span className={activeTab === item.id ? 'text-white' : 'text-slate-400 group-hover:text-primary'}>{item.icon}</span>{item.label}
+                </button>
+              ))}</div></section>;
+            })}
           </nav>
 
           <div className="p-3 border-t border-slate-100 dark:border-slate-800">

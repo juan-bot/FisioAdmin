@@ -1,8 +1,9 @@
-import { lazy, Suspense, useState, useRef } from 'react';
+import { lazy, Suspense, useEffect, useState, useRef } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppProvider } from './context/AppContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { ThemeToggle } from './components/ui/ThemeToggle';
+import { ToastViewport } from './components/ui/ToastViewport';
 import { Sidebar } from './components/layout/Sidebar';
 import { Footer } from './components/layout/Footer';
 import { AuthScreen } from './components/auth/AuthScreen';
@@ -79,12 +80,40 @@ const baseNavItems = [
 
 function MainContent() {
   const { isAdmin } = useAuth();
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [viewingPatientId, setViewingPatientId] = useState<string | null>(null);
+  const initialRoute = window.location.hash.replace(/^#\/?/, '').split('/');
+  const [activeTab, setActiveTab] = useState(initialRoute[0] === 'patients' && initialRoute[1] ? 'patient-detail' : initialRoute[0] || 'dashboard');
+  const [viewingPatientId, setViewingPatientId] = useState<string | null>(initialRoute[0] === 'patients' ? initialRoute[1] || null : null);
+  const [appointmentRequest, setAppointmentRequest] = useState<{ patientId?: string } | null>(null);
+  const [progressRequest, setProgressRequest] = useState<{ patientId?: string } | null>(null);
+  const [prescriptionRequest, setPrescriptionRequest] = useState<{ patientId?: string } | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const touchStartX = useRef(0);
   const touchStartY = useRef(0);
   const isSwiping = useRef(false);
+
+  useEffect(() => {
+    const syncFromHistory = () => {
+      const [section, id] = window.location.hash.replace(/^#\/?/, '').split('/');
+      if (section === 'patients' && id) {
+        setViewingPatientId(id);
+        setActiveTab('patient-detail');
+      } else {
+        setViewingPatientId(null);
+        setActiveTab(section || 'dashboard');
+      }
+    };
+    window.addEventListener('popstate', syncFromHistory);
+    window.addEventListener('hashchange', syncFromHistory);
+    return () => {
+      window.removeEventListener('popstate', syncFromHistory);
+      window.removeEventListener('hashchange', syncFromHistory);
+    };
+  }, []);
+
+  const setRoute = (path: string) => {
+    const hash = `#/${path}`;
+    if (window.location.hash !== hash) window.history.pushState(null, '', hash);
+  };
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -114,36 +143,60 @@ function MainContent() {
   const handlePatientsHeader = () => {
     setActiveTab('patients');
     setViewingPatientId(null);
+    setRoute('patients');
   };
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     setViewingPatientId(null);
+    setRoute(tab);
   };
 
   const handleViewPatient = (id: string) => {
     setViewingPatientId(id);
     setActiveTab('patient-detail');
+    setRoute(`patients/${id}`);
+  };
+
+  const handleCreateAppointment = (patientId?: string) => {
+    setAppointmentRequest({ patientId });
+    setActiveTab('appointments');
+    setViewingPatientId(null);
+    setRoute('appointments');
+  };
+
+  const handleCreateProgress = (patientId?: string) => {
+    setProgressRequest({ patientId });
+    setActiveTab('progress');
+    setViewingPatientId(null);
+    setRoute('progress');
+  };
+
+  const handleCreatePrescription = (patientId?: string) => {
+    setPrescriptionRequest({ patientId });
+    setActiveTab('prescriptions');
+    setViewingPatientId(null);
+    setRoute('prescriptions');
   };
 
   const renderContent = () => {
     if (viewingPatientId && activeTab === 'patient-detail') {
-      return <PatientDetail patientId={viewingPatientId} onBack={handlePatientsHeader} />;
+      return <PatientDetail patientId={viewingPatientId} onBack={handlePatientsHeader} onCreateAppointment={handleCreateAppointment} onCreateProgress={handleCreateProgress} onCreatePrescription={handleCreatePrescription} />;
     }
 
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard onNavigate={handleTabChange} />;
+        return <Dashboard onNavigate={handleTabChange} onCreateAppointment={() => handleCreateAppointment()} onViewPatient={handleViewPatient} />;
       case 'patients':
         return <Patients onViewPatient={handleViewPatient} />;
       case 'appointments':
-        return <Appointments />;
+        return <Appointments initialCreate={!!appointmentRequest} initialPatientId={appointmentRequest?.patientId} onInitialCreateHandled={() => setAppointmentRequest(null)} />;
       case 'calendar':
         return <Calendar />;
       case 'prescriptions':
-        return <Prescriptions />;
+        return <Prescriptions initialCreate={!!prescriptionRequest} initialPatientId={prescriptionRequest?.patientId} onInitialCreateHandled={() => setPrescriptionRequest(null)} />;
       case 'progress':
-        return <Progress />;
+        return <Progress initialCreate={!!progressRequest} initialPatientId={progressRequest?.patientId} onInitialCreateHandled={() => setProgressRequest(null)} />;
       case 'metrics':
         return <Metrics />;
       case 'finanzas':
@@ -151,12 +204,13 @@ function MainContent() {
       case 'users':
         return <Users />;
       default:
-        return <Dashboard onNavigate={handleTabChange} />;
+        return <Dashboard onNavigate={handleTabChange} onCreateAppointment={() => handleCreateAppointment()} onViewPatient={handleViewPatient} />;
     }
   };
 
   return (
     <div className="h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-col">
+      <ToastViewport />
       <Sidebar navItems={navItems} activeTab={activeTab} onTabChange={handleTabChange} isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
       <div className="lg:pl-64 flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>

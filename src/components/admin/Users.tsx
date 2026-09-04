@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { fetchUsers, approveUser, updateUserRole, deleteUserDoc, disableUser, enableUser, UserProfile } from '../../firebase/db';
+import { fetchUsers, fetchAllAppointments, fetchAllPatients, fetchAllProgressRecords, approveUser, updateUserRole, deleteUserDoc, disableUser, enableUser, UserProfile } from '../../firebase/db';
 import { UserMetrics } from '../dashboard/UserMetrics';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
@@ -15,12 +15,15 @@ export function Users() {
   const [roleConfirm, setRoleConfirm] = useState<{ user: UserProfile; newRole: UserProfile['role'] } | null>(null);
   const [disableConfirm, setDisableConfirm] = useState<UserProfile | null>(null);
   const [enableConfirm, setEnableConfirm] = useState<UserProfile | null>(null);
-  const [selectedUserMetricsUid, setSelectedUserMetricsUid] = useState<string | null>(null);
+  const [selectedUserMetrics, setSelectedUserMetrics] = useState<UserProfile | null>(null);
+  const [clinicData, setClinicData] = useState<{ patients: any[]; appointments: any[]; progress: any[] }>({ patients: [], appointments: [], progress: [] });
 
   const load = async () => {
     setLoading(true);
     try {
-      setUsers(await fetchUsers());
+      const [userData, patients, appointments, progress] = await Promise.all([fetchUsers(), fetchAllPatients(), fetchAllAppointments(), fetchAllProgressRecords()]);
+      setUsers(userData);
+      setClinicData({ patients, appointments, progress });
     } catch {
       setError('No se pudieron cargar los usuarios.');
     } finally {
@@ -30,12 +33,32 @@ export function Users() {
 
   useEffect(() => {
     let active = true;
-    fetchUsers()
-      .then(data => { if (active) setUsers(data); })
+    Promise.all([fetchUsers(), fetchAllPatients(), fetchAllAppointments(), fetchAllProgressRecords()])
+      .then(([userData, patients, appointments, progress]) => { if (active) { setUsers(userData); setClinicData({ patients, appointments, progress }); } })
       .catch(() => { if (active) setError('No se pudieron cargar los usuarios.'); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
+
+  const therapistMetrics = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return users.reduce<Record<string, { patients: number; completed: number; upcoming: number; documented: number; recovery: number; lastSession: string }>>((result, user) => {
+      const appointments = clinicData.appointments.filter(appointment => appointment.therapistId === user.uid);
+      const completed = appointments.filter(appointment => appointment.status === 'completed');
+      const progress = clinicData.progress.filter(record => record.therapistId === user.uid);
+      const recovery = progress.length ? Math.round(progress.reduce((sum, record) => sum + (record.mobilityScore + record.strengthScore + record.functionalScore) / 3, 0) / progress.length) : 0;
+      const lastSession = completed.slice().sort((a, b) => b.date.localeCompare(a.date))[0]?.date || '';
+      result[user.uid] = {
+        patients: clinicData.patients.filter(patient => patient.therapistId === user.uid && patient.status === 'active').length,
+        completed: completed.length,
+        upcoming: appointments.filter(appointment => appointment.date >= today && ['scheduled', 'confirmed'].includes(appointment.status)).length,
+        documented: completed.filter(appointment => appointment.sessionNote).length,
+        recovery,
+        lastSession,
+      };
+      return result;
+    }, {});
+  }, [users, clinicData]);
 
   const handleApprove = (user: UserProfile) => {
     setApproveConfirm(user);
@@ -155,6 +178,7 @@ export function Users() {
                    <th className="text-left font-medium px-4 py-3 whitespace-nowrap">Correo</th>
                    <th className="text-left font-medium px-4 py-3 whitespace-nowrap">Rol</th>
                    <th className="text-left font-medium px-4 py-3 whitespace-nowrap">Estado</th>
+                   <th className="text-left font-medium px-4 py-3 whitespace-nowrap">Desempeño clínico</th>
                    <th className="text-right font-medium px-4 py-3 whitespace-nowrap">Acciones</th>
                  </tr>
                </thead>
@@ -165,6 +189,7 @@ export function Users() {
                     <td className="px-4 py-3 text-gray-600">{u.email}</td>
                     <td className="px-4 py-3"><RoleSelect u={u} onChange={handleRole} /></td>
                     <td className="px-4 py-3"><StatusBadge approved={u.approved} disabled={u.disabled} /></td>
+                    <td className="px-4 py-3">{u.role === 'therapist' ? <div className="min-w-[220px]"><div className="grid grid-cols-3 gap-2 text-center"><span className="rounded-lg bg-primary-lighter px-2 py-1 text-xs font-bold text-primary-dark">{therapistMetrics[u.uid]?.patients || 0}<small className="ml-1 font-medium text-slate-500">pac.</small></span><span className="rounded-lg bg-secondary-light px-2 py-1 text-xs font-bold text-secondary-dark">{therapistMetrics[u.uid]?.completed || 0}<small className="ml-1 font-medium text-slate-500">ses.</small></span><span className="rounded-lg bg-accent-light px-2 py-1 text-xs font-bold text-accent-hover">{therapistMetrics[u.uid]?.recovery || 0}%<small className="ml-1 font-medium text-slate-500">rec.</small></span></div><p className="mt-1 text-xs text-slate-400">{therapistMetrics[u.uid]?.documented || 0}/{therapistMetrics[u.uid]?.completed || 0} sesiones documentadas</p></div> : <span className="text-xs text-gray-400">—</span>}</td>
 <td className="px-4 py-3 text-right whitespace-nowrap">
                         {!u.approved && (
                           <button
@@ -200,7 +225,7 @@ export function Users() {
                         )}
                         {u.role === 'therapist' && (
                           <button
-                            onClick={() => setSelectedUserMetricsUid(u.uid)}
+                            onClick={() => setSelectedUserMetrics(u)}
                             className="text-sm text-info hover:underline font-medium mr-3"
                           >
                             Ver Métricas
@@ -214,8 +239,8 @@ export function Users() {
            </div>
          </div>
 
-         {selectedUserMetricsUid && (
-            <UserMetrics therapistId={selectedUserMetricsUid} />
+          {selectedUserMetrics && (
+            <UserMetrics therapistId={selectedUserMetrics.uid} therapistName={selectedUserMetrics.displayName} />
           )}
 
           <div className="sm:hidden space-y-3">
@@ -232,6 +257,7 @@ export function Users() {
                   <span className="text-xs text-gray-500">Rol</span>
                   <RoleSelect u={u} onChange={handleRole} />
                 </div>
+                {u.role === 'therapist' && <div className="grid grid-cols-3 gap-2 rounded-xl bg-slate-50 p-3 text-center dark:bg-slate-800"><div><p className="text-lg font-bold text-primary">{therapistMetrics[u.uid]?.patients || 0}</p><p className="text-[10px] text-slate-500">Pacientes</p></div><div><p className="text-lg font-bold text-secondary-dark">{therapistMetrics[u.uid]?.completed || 0}</p><p className="text-[10px] text-slate-500">Sesiones</p></div><div><p className="text-lg font-bold text-accent-hover">{therapistMetrics[u.uid]?.recovery || 0}%</p><p className="text-[10px] text-slate-500">Recuperación</p></div></div>}
 <div className="flex gap-2 pt-1">
                   {!u.approved && (
                     <button
@@ -267,7 +293,7 @@ export function Users() {
                   )}
                   {u.role === 'therapist' && (
                     <button
-                      onClick={() => setSelectedUserMetricsUid(u.uid)}
+                      onClick={() => setSelectedUserMetrics(u)}
                       className="flex-1 py-2 bg-info hover:bg-info-hover text-white text-sm font-medium rounded-lg transition-colors"
                     >
                       Ver Métricas

@@ -134,9 +134,15 @@ function PatientProgressBar({ patient, progressRecords }: { patient: any; progre
   );
 }
 
-export default function Progress() {
+interface ProgressProps {
+  initialCreate?: boolean;
+  initialPatientId?: string;
+  onInitialCreateHandled?: () => void;
+}
+
+export default function Progress({ initialCreate = false, initialPatientId = '', onInitialCreateHandled }: ProgressProps) {
   const { patients, progressRecords, deleteProgressRecord } = useApp();
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(initialCreate);
   const [editingRecord, setEditingRecord] = useState<ProgressRecord | null>(null);
   const [viewingRecord, setViewingRecord] = useState<ProgressRecord | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<ProgressRecord | null>(null);
@@ -341,7 +347,8 @@ export default function Progress() {
       {showForm && (
         <ProgressForm
           record={editingRecord}
-          onClose={() => { setShowForm(false); setEditingRecord(null); }}
+          initialPatientId={initialPatientId}
+          onClose={() => { setShowForm(false); setEditingRecord(null); onInitialCreateHandled?.(); }}
         />
       )}
 

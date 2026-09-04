@@ -8,9 +8,15 @@ import { formatDate } from '../../utils/format';
 import { Prescription } from '../../types';
 import { exportPrescriptionToPDF } from '../../utils/exportPrescription';
 
-export default function Prescriptions() {
+interface PrescriptionsProps {
+  initialCreate?: boolean;
+  initialPatientId?: string;
+  onInitialCreateHandled?: () => void;
+}
+
+export default function Prescriptions({ initialCreate = false, initialPatientId = '', onInitialCreateHandled }: PrescriptionsProps) {
   const { prescriptions, updatePrescription, deletePrescription } = useApp();
-  const [showForm, setShowForm] = useState(false);
+  const [showForm, setShowForm] = useState(initialCreate);
   const [editingPrescription, setEditingPrescription] = useState<Prescription | null>(null);
   const [viewingPrescription, setViewingPrescription] = useState<Prescription | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Prescription | null>(null);
@@ -185,7 +191,8 @@ export default function Prescriptions() {
       {showForm && (
         <PrescriptionForm
           prescription={editingPrescription}
-          onClose={() => { setShowForm(false); setEditingPrescription(null); }}
+          initialPatientId={initialPatientId}
+          onClose={() => { setShowForm(false); setEditingPrescription(null); onInitialCreateHandled?.(); }}
         />
       )}
 

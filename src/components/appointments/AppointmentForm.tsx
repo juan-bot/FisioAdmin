@@ -7,14 +7,15 @@ import { Appointment } from '../../types';
 interface AppointmentFormProps {
   appointment: Appointment | null;
   onClose: () => void;
+  initialPatientId?: string;
 }
 
-export function AppointmentForm({ appointment, onClose }: AppointmentFormProps) {
+export function AppointmentForm({ appointment, onClose, initialPatientId = '' }: AppointmentFormProps) {
   const { patients, addAppointment, updateAppointment, currentTherapist } = useApp();
   const [form, setForm] = useState(() => {
     const today = new Date().toISOString().split('T')[0];
     return {
-      patientId: appointment?.patientId || '',
+      patientId: appointment?.patientId || initialPatientId,
       date: appointment?.date || today,
       startTime: appointment?.startTime || '09:00',
       endTime: appointment?.endTime || '10:00',
@@ -31,7 +32,7 @@ export function AppointmentForm({ appointment, onClose }: AppointmentFormProps) 
     setForm(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!form.patientId) {
       setError('Selecciona un paciente');
@@ -63,9 +64,9 @@ export function AppointmentForm({ appointment, onClose }: AppointmentFormProps) 
     };
 
     if (appointment) {
-      updateAppointment(appointment.id, appointmentData);
+      await updateAppointment(appointment.id, appointmentData);
     } else {
-      addAppointment(appointmentData);
+      await addAppointment(appointmentData);
     }
     onClose();
   };

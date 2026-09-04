@@ -29,6 +29,7 @@ interface AuthContextType {
   error: string;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, displayName: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -159,6 +160,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signOut(auth);
   };
 
+  const resetPassword = async (email: string) => {
+    await sendPasswordResetEmail(auth, email);
+  };
+
   const refreshProfile = async () => {
     if (user) {
       const prof = await fetchUserProfile(user.uid);
@@ -169,7 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAdmin = status === 'authenticated' && profile?.role === 'admin';
 
   return (
-    <AuthContext.Provider value={{ user, profile, status, isAdmin, error, login, register, logout, refreshProfile }}>
+    <AuthContext.Provider value={{ user, profile, status, isAdmin, error, login, register, resetPassword, logout, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

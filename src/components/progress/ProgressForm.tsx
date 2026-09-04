@@ -6,6 +6,7 @@ import { ProgressRecord, Metric } from '../../types';
 
 interface ProgressFormProps {
   record: ProgressRecord | null;
+  initialPatientId?: string;
   onClose: () => void;
 }
 
@@ -19,10 +20,10 @@ interface MetricForm {
   category: Metric['category'];
 }
 
-export function ProgressForm({ record, onClose }: ProgressFormProps) {
+export function ProgressForm({ record, initialPatientId = '', onClose }: ProgressFormProps) {
   const { patients, addProgressRecord, updateProgressRecord, progressRecords, currentTherapist } = useApp();
   const [form, setForm] = useState(() => ({
-    patientId: record?.patientId || '',
+    patientId: record?.patientId || initialPatientId,
     date: record?.date || new Date().toISOString().split('T')[0],
     painLevel: record?.painLevel || 5,
     mobilityScore: record?.mobilityScore || 50,
@@ -104,7 +105,7 @@ export function ProgressForm({ record, onClose }: ProgressFormProps) {
     }
   };
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!form.patientId) {
       setError('Selecciona un paciente');
@@ -140,9 +141,9 @@ export function ProgressForm({ record, onClose }: ProgressFormProps) {
     };
 
     if (record) {
-      updateProgressRecord(record.id, recordData);
+      await updateProgressRecord(record.id, recordData);
     } else {
-      addProgressRecord(recordData);
+      await addProgressRecord(recordData);
     }
     onClose();
   };
