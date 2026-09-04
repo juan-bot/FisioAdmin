@@ -38,10 +38,11 @@ export default function Patients({ onViewPatient }: { onViewPatient: (id: string
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="page-heading flex items-end justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Pacientes</h2>
-          <p className="text-gray-500">Gestiona los expedientes de tus pacientes</p>
+          <p className="eyebrow">Expedientes clínicos</p>
+          <h2 className="page-title mt-1">Pacientes</h2>
+          <p className="page-subtitle">Consulta y administra la información de tus pacientes.</p>
         </div>
         <Button onClick={() => {
           setEditingPatient(null);
@@ -79,7 +80,22 @@ export default function Patients({ onViewPatient }: { onViewPatient: (id: string
           </div>
         </CardHeader>
         <CardBody>
-          <div className="overflow-x-auto">
+          <div className="space-y-3 sm:hidden">
+            {filteredPatients.map(p => (
+              <button key={p.id} onClick={() => onViewPatient(p.id)} className="w-full rounded-2xl border border-slate-200 p-4 text-left transition-colors hover:border-primary/30 hover:bg-primary-lighter dark:border-slate-700 dark:hover:bg-slate-800">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-light text-sm font-bold text-primary-dark">{p.firstName[0]}{p.lastName[0]}</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2"><p className="truncate text-sm font-bold text-slate-950 dark:text-white">{p.firstName} {p.lastName}</p><span className={`badge ${getStatusColor(p.status)}`}>{getStatusLabel(p.status)}</span></div>
+                    <p className="mt-1 text-xs text-slate-500">{p.phone}</p>
+                    <div className="mt-3 flex items-center gap-3 text-[11px] text-slate-400"><span>{appointmentCountMap.get(p.id) ?? 0} citas</span><span>·</span><span>{formatDate(p.dateOfBirth)}</span></div>
+                  </div>
+                </div>
+              </button>
+            ))}
+            {filteredPatients.length === 0 && <p className="py-8 text-center text-sm text-slate-400">No se encontraron pacientes.</p>}
+          </div>
+          <div className="hidden overflow-x-auto sm:block">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>

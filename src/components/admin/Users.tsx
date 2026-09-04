@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { fetchUsers, approveUser, updateUserRole, deleteUserDoc, disableUser, enableUser, softDeleteUser, UserProfile } from '../../firebase/db';
+import { fetchUsers, approveUser, updateUserRole, deleteUserDoc, disableUser, enableUser, UserProfile } from '../../firebase/db';
 import { UserMetrics } from '../dashboard/UserMetrics';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
@@ -29,7 +29,12 @@ export function Users() {
   };
 
   useEffect(() => {
-    load();
+    let active = true;
+    fetchUsers()
+      .then(data => { if (active) setUsers(data); })
+      .catch(() => { if (active) setError('No se pudieron cargar los usuarios.'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, []);
 
   const handleApprove = (user: UserProfile) => {

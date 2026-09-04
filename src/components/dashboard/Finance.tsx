@@ -49,8 +49,9 @@ export function Finance() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Finanzas</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="eyebrow">Control financiero</p>
+        <h1 className="page-title mt-1">Finanzas</h1>
+        <p className="page-subtitle">
           Define el presupuesto mensual y compara los ingresos reales del mes.
         </p>
       </div>

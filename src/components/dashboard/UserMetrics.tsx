@@ -4,13 +4,13 @@ import { fetchAppointmentsByTherapist } from '../../firebase/db';
 import { Card, CardBody, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import {
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area,
 } from 'recharts';
 
 const COLORS = ['#2563eb', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
-type TimeRange = 'week' | 'month' | 'year' | 'all';
+type TimeRange = 'week' | 'month' | 'year' | 'all' | 'custom';
 
 function parseAmount(val: any): number {
   if (val == null) return 0;
@@ -27,19 +27,13 @@ export function UserMetrics({ therapistId }: { therapistId: string }) {
   const [loading, setLoading] = useState(true);
   const [refreshTick, setRefreshTick] = useState(0);
 
-  const loadAppointments = async () => {
-    setLoading(true);
-    try {
-      const data = await fetchAppointmentsByTherapist(therapistId);
-      setAppointments(data);
-    } catch {
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadAppointments();
+    let active = true;
+    fetchAppointmentsByTherapist(therapistId)
+      .then(data => { if (active) setAppointments(data); })
+      .catch(() => undefined)
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, [therapistId, refreshTick]);
 
   const filteredAppointments = useMemo(() => {
@@ -153,6 +147,7 @@ export function UserMetrics({ therapistId }: { therapistId: string }) {
   }, [filteredAppointments]);
 
   const handleRefresh = () => {
+    setLoading(true);
     setRefreshTick(t => t + 1);
   };
 

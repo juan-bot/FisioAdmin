@@ -59,11 +59,9 @@ const DonutChart = memo(function DonutChart({ segments }: { segments: { label: s
   const total = segments.reduce((acc, s) => acc + s.value, 0) || 1;
 
   const circles = useMemo(() => {
-    let cumulative = 0;
-    return segments.map(s => {
-      const start = cumulative;
-      cumulative += s.value;
-      return { ...s, start, end: cumulative };
+    return segments.map((segment, index) => {
+      const start = segments.slice(0, index).reduce((sum, item) => sum + item.value, 0);
+      return { ...segment, start, end: start + segment.value };
     });
   }, [segments]);
 
@@ -72,7 +70,7 @@ const DonutChart = memo(function DonutChart({ segments }: { segments: { label: s
   return (
     <div className="flex flex-col items-center">
       <svg viewBox="0 0 120 120" className="w-40 h-40 -rotate-90">
-        <circle cx="60" cy="60" r="45" fill="none" stroke="#f3f4f6" strokeWidth="12" />
+        <circle cx="60" cy="60" r="45" fill="none" stroke="var(--border-subtle)" strokeWidth="12" />
         {circles.map((s, i) => {
           const dashLength = (s.value / total) * circumference;
           return (
@@ -241,9 +239,10 @@ export default function Metrics() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="page-heading flex items-end justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Métricas y Análisis</h2>
+          <p className="eyebrow">Inteligencia de negocio</p>
+          <h2 className="page-title mt-1">Métricas y análisis</h2>
           <p className="text-gray-500">Indicadores de desempeño de la clínica</p>
         </div>
         <div className="flex gap-2">

@@ -87,9 +87,10 @@ export default function Prescriptions() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="page-heading flex items-end justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Recetas</h2>
+          <p className="eyebrow">Planes de tratamiento</p>
+          <h2 className="page-title mt-1">Recetas</h2>
           <p className="text-gray-500">Crea y gestiona recetas de tratamiento</p>
         </div>
         <Button onClick={handleNewPrescription}>+ Nueva Receta</Button>

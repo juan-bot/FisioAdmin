@@ -1,6 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { ThemeToggle } from '../ui/ThemeToggle';
+import { BrandLogo } from '../ui/BrandLogo';
 
 type Mode = 'login' | 'register';
 
@@ -39,32 +40,70 @@ export function AuthScreen() {
         setInfo('Registro exitoso. Tu cuenta quedará pendiente de aprobación por el administrador antes de poder acceder.');
       }
     } catch (err: any) {
-      setError(translateError(err?.code));
+      setError(err?.message?.startsWith('Esta cuenta fue eliminada') ? err.message : translateError(err?.code));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const inputClass = "w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200";
-  const labelClass = "block text-sm font-medium text-gray-700 mb-1";
+  const inputClass = "input h-12";
+  const labelClass = "label";
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4 dark:bg-gradient-to-br dark:from-[#0d130e] dark:to-[#16221a]">
-      <div className="w-full max-w-md">
-        <div className="flex justify-end mb-2">
-          <ThemeToggle />
-        </div>
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-primary text-white text-2xl font-bold mb-3 dark:shadow-lg dark:shadow-[#a7c874]/40">
-            F
+    <main className="min-h-screen bg-[#eef5f4] dark:bg-slate-950 lg:grid lg:grid-cols-[1.08fr_.92fr]">
+      <section className="relative hidden overflow-hidden bg-[#073f3c] p-12 text-white lg:flex lg:flex-col lg:justify-between xl:p-16">
+        <div className="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-teal-300/10 blur-3xl" />
+        <div className="absolute -bottom-28 left-12 h-80 w-80 rounded-full bg-cyan-300/10 blur-3xl" />
+        <BrandLogo inverse />
+
+        <div className="relative max-w-xl py-12">
+          <span className="inline-flex rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-emerald-100 backdrop-blur">
+            Hecho para clínicas de fisioterapia
+          </span>
+          <h1 className="mt-6 text-4xl font-extrabold leading-[1.08] tracking-[-0.04em] xl:text-5xl">
+            Más tiempo para tus pacientes. <span className="text-emerald-200">Menos para administrar.</span>
+          </h1>
+          <p className="mt-5 max-w-lg text-base leading-7 text-white/68">
+            Organiza expedientes, citas, tratamientos, evolución clínica y finanzas desde un solo lugar.
+          </p>
+
+          <div className="mt-10 grid grid-cols-3 gap-3">
+            {[
+              ['Agenda', 'Siempre al día'],
+              ['Expedientes', 'Todo conectado'],
+              ['Métricas', 'Decide mejor'],
+            ].map(([title, detail]) => (
+              <div key={title} className="rounded-2xl border border-white/10 bg-white/[0.07] p-4 backdrop-blur-sm">
+                <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-200 text-[#075e56]">
+                  <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2">
+                    <path d="m7 12 3 3 7-7" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <p className="text-sm font-bold">{title}</p>
+                <p className="mt-1 text-xs text-white/50">{detail}</p>
+              </div>
+            ))}
           </div>
         </div>
-        <h1 className="text-2xl font-bold text-primary-dark dark:text-[#c2e08a]">FisioAdmin</h1>
-        <p className="text-sm text-gray-500 mt-1 dark:text-[#8a9a88]">
-          {mode === 'login' ? 'Inicia sesión para continuar' : 'Crea tu cuenta'}
-        </p>
 
-      <form onSubmit={handleSubmit} className="bg-white p-6 sm:p-8 rounded-2xl border border-gray-200 shadow-sm space-y-5 dark:bg-[#16221a] dark:border-[#2c4730] dark:shadow-2xl dark:shadow-black/60">
+        <p className="relative text-xs text-white/40">Información clara para una atención más humana.</p>
+      </section>
+
+      <section className="relative flex min-h-screen items-center justify-center p-5 sm:p-10">
+        <div className="absolute right-5 top-5 sm:right-8 sm:top-8"><ThemeToggle /></div>
+        <div className="w-full max-w-md animate-fade-in">
+          <div className="mb-10 lg:hidden"><BrandLogo /></div>
+          <div className="mb-7">
+            <p className="eyebrow">{mode === 'login' ? 'Bienvenido de nuevo' : 'Empieza hoy'}</p>
+            <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950 dark:text-white">
+              {mode === 'login' ? 'Accede a tu clínica' : 'Crea tu cuenta'}
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
+              {mode === 'login' ? 'Ingresa tus datos para continuar donde lo dejaste.' : 'Centraliza la operación diaria de tu clínica.'}
+            </p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
           {error && <div className="p-3 bg-danger-light border border-danger text-danger rounded-lg text-sm">{error}</div>}
           {authError && <div className="p-3 bg-danger-light border border-danger text-danger rounded-lg text-sm">{authError}</div>}
           {info && <div className="p-3 bg-secondary-light border border-secondary text-secondary-dark rounded-lg text-sm">{info}</div>}
@@ -89,29 +128,34 @@ export function AuthScreen() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full py-2.5 bg-primary hover:bg-primary-hover text-white font-medium rounded-lg transition-colors disabled:opacity-60"
+            className="btn btn-primary h-12 w-full shadow-brand disabled:opacity-60"
           >
             {submitting ? 'Procesando...' : mode === 'login' ? 'Iniciar sesión' : 'Registrarse'}
           </button>
-        </form>
+          </form>
 
-        <div className="text-center mt-5 text-sm text-gray-600">
+          <div className="mt-7 text-center text-sm text-slate-500 dark:text-slate-400">
           {mode === 'login' ? (
             <p>¿No tienes cuenta?{' '}
-              <button className="text-primary font-medium hover:underline" onClick={() => { setMode('register'); setError(''); setInfo(''); }}>
+              <button className="font-semibold text-primary hover:text-primary-hover" onClick={() => { setMode('register'); setError(''); setInfo(''); }}>
                 Regístrate
               </button>
             </p>
           ) : (
             <p>¿Ya tienes cuenta?{' '}
-              <button className="text-primary font-medium hover:underline" onClick={() => { setMode('login'); setError(''); setInfo(''); }}>
+              <button className="font-semibold text-primary hover:text-primary-hover" onClick={() => { setMode('login'); setError(''); setInfo(''); }}>
                 Inicia sesión
               </button>
             </p>
           )}
+          </div>
+          <div className="mt-8 flex items-center justify-center gap-2 text-xs text-slate-400">
+            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" stroke="currentColor" strokeWidth="2"><path d="M7 10V8a5 5 0 0 1 10 0v2M6 10h12v10H6z" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            Tus datos están protegidos
+          </div>
         </div>
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }
 

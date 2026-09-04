@@ -1,3 +1,4 @@
+/* eslint-disable react/only-export-components -- provider and hook intentionally share one module */
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import {
   onAuthStateChanged,
@@ -41,7 +42,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    const loadingFallback = window.setTimeout(() => {
+      setStatus(current => current === 'loading' ? 'unauthenticated' : current);
+    }, 6000);
     const unsub = onAuthStateChanged(auth, async (fbUser) => {
+      window.clearTimeout(loadingFallback);
       setUser(fbUser);
       setError('');
       if (!fbUser) {
@@ -107,7 +112,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setStatus('unauthenticated');
       }
     });
-    return unsub;
+    return () => {
+      window.clearTimeout(loadingFallback);
+      unsub();
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -128,7 +136,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         approved: first,
         disabled: false,
         createdAt: new Date().toISOString(),
-        password,
       };
       await createUserProfile(prof);
     } catch (err: any) {

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { lazy, Suspense, useState, useRef } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppProvider } from './context/AppContext';
 import { ThemeProvider } from './context/ThemeContext';
@@ -6,16 +6,16 @@ import { ThemeToggle } from './components/ui/ThemeToggle';
 import { Sidebar } from './components/layout/Sidebar';
 import { Footer } from './components/layout/Footer';
 import { AuthScreen } from './components/auth/AuthScreen';
-import { Users } from './components/admin/Users';
-import Dashboard from './components/dashboard/Dashboard';
-import Patients from './components/patients/Patients';
-import PatientDetail from './components/patients/PatientDetail';
-import Appointments from './components/appointments/Appointments';
-import Calendar from './components/appointments/Calendar';
-import Prescriptions from './components/prescriptions/Prescriptions';
-import Progress from './components/progress/Progress';
-import Metrics from './components/dashboard/Metrics';
-import { Finance } from './components/dashboard/Finance';
+const Dashboard = lazy(() => import('./components/dashboard/Dashboard'));
+const Patients = lazy(() => import('./components/patients/Patients'));
+const PatientDetail = lazy(() => import('./components/patients/PatientDetail'));
+const Appointments = lazy(() => import('./components/appointments/Appointments'));
+const Calendar = lazy(() => import('./components/appointments/Calendar'));
+const Prescriptions = lazy(() => import('./components/prescriptions/Prescriptions'));
+const Progress = lazy(() => import('./components/progress/Progress'));
+const Metrics = lazy(() => import('./components/dashboard/Metrics'));
+const Finance = lazy(() => import('./components/dashboard/Finance').then(module => ({ default: module.Finance })));
+const Users = lazy(() => import('./components/admin/Users').then(module => ({ default: module.Users })));
 
 const icons = {
   dashboard: (
@@ -156,13 +156,15 @@ function MainContent() {
   };
 
   return (
-    <div className="h-screen overflow-hidden bg-gray-50 flex flex-col">
+    <div className="h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-col">
       <Sidebar navItems={navItems} activeTab={activeTab} onTabChange={handleTabChange} isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
       <div className="lg:pl-64 flex-1 flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto" onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}>
-          <Header sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
-          <div className="px-4 pt-4 sm:px-6 sm:pt-4 lg:px-8 max-w-7xl mx-auto w-full">
-            <div className="mt-3">{renderContent()}</div>
+          <Header activeTab={activeTab} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+          <div className="page-shell min-h-full px-4 pb-6 pt-6 sm:px-6 lg:px-8">
+            <div className="max-w-[1440px] mx-auto w-full">
+              <Suspense fallback={<ContentSkeleton />}>{renderContent()}</Suspense>
+            </div>
           </div>
         </div>
         <Footer />
@@ -171,13 +173,32 @@ function MainContent() {
   );
 }
 
-function Header({ sidebarOpen, setSidebarOpen }: { sidebarOpen: boolean; setSidebarOpen: (v: boolean) => void }) {
+function ContentSkeleton() {
   return (
-      <header className="flex items-center justify-between bg-gray-50 dark:bg-[#16221a] h-16 sticky top-0 z-10 w-full">
+    <div className="animate-pulse space-y-6" aria-label="Cargando contenido">
+      <div className="h-8 w-56 rounded-lg bg-slate-200 dark:bg-slate-800" />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {[0, 1, 2, 3].map(item => <div key={item} className="h-28 rounded-2xl bg-white dark:bg-slate-900" />)}
+      </div>
+      <div className="h-72 rounded-2xl bg-white dark:bg-slate-900" />
+    </div>
+  );
+}
+
+function Header({ activeTab, sidebarOpen, setSidebarOpen }: { activeTab: string; sidebarOpen: boolean; setSidebarOpen: (v: boolean) => void }) {
+  const { profile } = useAuth();
+  const labels: Record<string, string> = {
+    dashboard: 'Resumen', patients: 'Pacientes', appointments: 'Citas', calendar: 'Calendario',
+    prescriptions: 'Recetas', progress: 'Progreso', metrics: 'Métricas', finanzas: 'Finanzas', users: 'Usuarios',
+    'patient-detail': 'Expediente',
+  };
+
+  return (
+      <header className="flex items-center justify-between border-b border-slate-200/80 bg-white/90 dark:bg-slate-950/90 dark:border-slate-800 h-[72px] px-4 sm:px-6 lg:px-8 sticky top-0 z-30 w-full backdrop-blur-xl">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="flex items-center justify-center w-11 h-11 rounded-lg bg-primary text-white hover-lift lg:hidden"
+            className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary text-white shadow-brand lg:hidden"
             aria-label={sidebarOpen ? 'Cerrar menú' : 'Abrir menú'}
           >
             {sidebarOpen ? (
@@ -190,21 +211,24 @@ function Header({ sidebarOpen, setSidebarOpen }: { sidebarOpen: boolean; setSide
               </svg>
             )}
           </button>
-          <h2 className="text-xl font-bold text-primary-dark dark:text-white lg:hidden">FisioAdmin</h2>
+          <h2 className="text-lg font-extrabold text-slate-950 dark:text-white lg:hidden">FisioAdmin</h2>
+          <div className="hidden lg:block">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">FisioAdmin / {labels[activeTab] || 'Clínica'}</p>
+            <p className="mt-0.5 text-sm font-semibold text-slate-700 dark:text-slate-200">Hola, {profile?.displayName?.split(' ')[0] || 'profesional'}</p>
+          </div>
         </div>
         <div className="flex items-center gap-4">
-          <div className="hidden sm:block text-right">
-            <p className="text-sm font-medium text-gray-900">Hoy</p>
-            <p className="text-xs text-gray-500">
+          <div className="hidden sm:block text-right leading-tight">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Hoy</p>
+            <p className="mt-1 text-xs font-medium text-slate-600 dark:text-slate-300 capitalize">
               {new Date().toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
             </p>
           </div>
           <ThemeToggle />
-          <button className="relative p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors">
+          <button className="p-2.5 text-slate-500 hover:text-primary rounded-xl hover:bg-primary-lighter dark:hover:bg-slate-800 transition-colors" aria-label="Notificaciones" title="Sin notificaciones nuevas">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
-            <span className="absolute top-1 right-1 w-2 h-2 bg-danger rounded-full" />
           </button>
         </div>
       </header>
@@ -242,6 +266,11 @@ function PendingScreen() {
 
 function Root() {
   const { status } = useAuth();
+  const isDevelopmentPreview = import.meta.env.DEV && new URLSearchParams(window.location.search).has('preview');
+
+  if (isDevelopmentPreview) {
+    return <AppProvider><MainContent /></AppProvider>;
+  }
 
   if (status === 'loading') return <LoadingScreen message="Cargando..." />;
   if (status === 'unauthenticated') return <AuthScreen />;

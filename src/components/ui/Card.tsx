@@ -6,7 +6,7 @@ interface CardProps {
 }
 
 export function Card({ children, className = '' }: CardProps) {
-  return <div className={`card ${className}`}>{children}</div>;
+  return <section className={`card ${className}`}>{children}</section>;
 }
 
 interface CardHeaderProps {

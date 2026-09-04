@@ -169,9 +169,10 @@ export default function Progress() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="page-heading flex items-end justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Seguimiento de Progreso</h2>
+          <p className="eyebrow">Evolución clínica</p>
+          <h2 className="page-title mt-1">Seguimiento de progreso</h2>
           <p className="text-gray-500">Registra y monitorea la evolución de los pacientes</p>
         </div>
         <Button onClick={handleShowForm}>+ Nuevo Registro</Button>

@@ -1,3 +1,4 @@
+/* eslint-disable react/only-export-components -- provider and hook intentionally share one module */
 import { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
 import { Patient, Appointment, Prescription, ProgressRecord, DashboardStats } from '../types';
 import { useAuth } from './AuthContext';
@@ -56,15 +57,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (status !== 'authenticated') {
-      setPatients([]);
-      setAppointments([]);
-      setPrescriptions([]);
-      setProgressRecords([]);
-      setLoading(false);
+      Promise.resolve().then(() => {
+        setPatients([]);
+        setAppointments([]);
+        setPrescriptions([]);
+        setProgressRecords([]);
+        setLoading(false);
+      });
       return;
     }
     let active = true;
-    setLoading(true);
     const therapistId = profile?.uid || '';
     Promise.all([
       fetchPatients(therapistId),
@@ -88,7 +90,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => {
       active = false;
     };
-  }, [status]);
+  }, [status, profile?.uid]);
 
   const currentTherapist = useMemo(() => {
     if (!profile) return CURRENT_THERAPIST;

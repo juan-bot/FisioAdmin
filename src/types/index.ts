@@ -126,7 +126,6 @@ export interface UserProfile {
   disabled: boolean;
   createdAt: string;
   deletedAt?: string;
-  password?: string;
 }
 
 export interface ChartData {

@@ -61,10 +61,11 @@ export default function Appointments() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="page-heading flex items-end justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Citas</h2>
-          <p className="text-gray-500">Gestiona las citas de tus pacientes</p>
+          <p className="eyebrow">Agenda clínica</p>
+          <h2 className="page-title mt-1">Citas</h2>
+          <p className="page-subtitle">Programa, confirma y da seguimiento a cada sesión.</p>
         </div>
         <Button onClick={() => { setEditingAppointment(null); setShowForm(true); }}>+ Nueva Cita</Button>
       </div>
@@ -104,7 +105,28 @@ export default function Appointments() {
           </div>
         </CardHeader>
         <CardBody>
-          <div className="overflow-x-auto">
+          <div className="space-y-3 sm:hidden">
+            {filteredAppointments.map(a => (
+              <article key={a.id} className="rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-light text-sm font-bold text-primary-dark">{a.patientName.split(' ').map(n => n[0]).join('').slice(0, 2)}</div>
+                  <div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-slate-950 dark:text-white">{a.patientName}</p><p className="mt-1 text-xs text-slate-500">{new Date(a.date).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })} · {formatTime(a.startTime)}</p></div>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{a.amount ? formatCurrency(a.amount) : '—'}</p>
+                </div>
+                <div className="mt-4 flex items-center justify-between gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
+                  <select value={a.status} onChange={(e) => handleStatusChange(a, e.target.value as Appointment['status'])} className={`badge cursor-pointer border-none ${getStatusBadge(a.status)}`}>
+                    {['scheduled', 'confirmed', 'completed', 'cancelled', 'no-show'].map(s => <option key={s} value={s}>{getStatusLabel(s)}</option>)}
+                  </select>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => handleEdit(a)} className="rounded-lg p-2 text-slate-400 hover:bg-primary-light hover:text-primary" aria-label={`Editar cita de ${a.patientName}`}><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-5m-1.414-9.414a2 2 0 1 1 2.828 2.828L11.828 15H9v-2.828z" /></svg></button>
+                    <button onClick={() => handleDeleteConfirm(a)} className="rounded-lg p-2 text-slate-400 hover:bg-danger-light hover:text-danger" aria-label={`Eliminar cita de ${a.patientName}`}><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6M4 7h16" /></svg></button>
+                  </div>
+                </div>
+              </article>
+            ))}
+            {filteredAppointments.length === 0 && <p className="py-8 text-center text-sm text-slate-400">No se encontraron citas.</p>}
+          </div>
+          <div className="hidden overflow-x-auto sm:block">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>

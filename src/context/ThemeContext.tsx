@@ -1,3 +1,4 @@
+/* eslint-disable react/only-export-components -- provider and hook intentionally share one module */
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 type Theme = 'light' | 'dark';
@@ -10,9 +11,11 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 function getInitialTheme(): Theme {
+  const requested = new URLSearchParams(window.location.search).get('theme');
+  if (requested === 'dark' || requested === 'light') return requested;
   const stored = localStorage.getItem('fisio-theme');
   if (stored === 'dark' || stored === 'light') return stored;
-  return 'dark';
+  return 'light';
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
