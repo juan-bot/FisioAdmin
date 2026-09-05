@@ -226,7 +226,7 @@ export function Users() {
                         {u.role === 'therapist' && (
                           <button
                             onClick={() => setSelectedUserMetrics(u)}
-                            className="text-sm text-info hover:underline font-medium mr-3"
+                            className="mr-3 inline-flex rounded-lg border border-primary/30 bg-primary-lighter px-2.5 py-1.5 text-sm font-bold text-primary-dark transition-colors hover:border-primary hover:bg-primary hover:text-white"
                           >
                             Ver Métricas
                           </button>
@@ -238,10 +238,6 @@ export function Users() {
              </table>
            </div>
          </div>
-
-          {selectedUserMetrics && (
-            <UserMetrics therapistId={selectedUserMetrics.uid} therapistName={selectedUserMetrics.displayName} />
-          )}
 
           <div className="sm:hidden space-y-3">
             {users.map(u => (
@@ -294,7 +290,7 @@ export function Users() {
                   {u.role === 'therapist' && (
                     <button
                       onClick={() => setSelectedUserMetrics(u)}
-                      className="flex-1 py-2 bg-info hover:bg-info-hover text-white text-sm font-medium rounded-lg transition-colors"
+                      className="flex-1 rounded-lg bg-primary py-2 text-sm font-bold text-white transition-colors hover:bg-primary-hover"
                     >
                       Ver Métricas
                     </button>
@@ -305,6 +301,10 @@ export function Users() {
           </div>
         </>
       )}
+
+      <Modal isOpen={!!selectedUserMetrics} onClose={() => setSelectedUserMetrics(null)} title="Panel de desempeño" size="xl">
+        {selectedUserMetrics && <UserMetrics therapistId={selectedUserMetrics.uid} therapistName={selectedUserMetrics.displayName} />}
+      </Modal>
 
       <Modal isOpen={!!approveConfirm} onClose={() => setApproveConfirm(null)} title="Aprobar usuario" size="sm">
         <p className="text-gray-700">
