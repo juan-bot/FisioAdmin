@@ -3,13 +3,14 @@ import { useAuth } from '../../context/AuthContext';
 import { ThemeToggle } from '../ui/ThemeToggle';
 import { BrandLogo } from '../ui/BrandLogo';
 
-type Mode = 'login' | 'register';
+type Mode = 'login' | 'register' | 'reset';
 
 export function AuthScreen() {
   const { login, register, resetPassword, error: authError } = useAuth();
   const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
@@ -19,21 +20,24 @@ export function AuthScreen() {
     e.preventDefault();
     setError('');
     setInfo('');
-    if (!email || !password) {
-      setError('Ingresa tu correo y contraseña');
+    if (!email || (mode !== 'reset' && !password)) {
+      setError(mode === 'reset' ? 'Ingresa tu correo electrónico.' : 'Ingresa tu correo y contraseña');
       return;
     }
     if (mode === 'register' && !displayName) {
       setError('Ingresa tu nombre');
       return;
     }
-    if (password.length < 6) {
+    if (mode !== 'reset' && password.length < 6) {
       setError('La contraseña debe tener al menos 6 caracteres');
       return;
     }
     setSubmitting(true);
     try {
-      if (mode === 'login') {
+      if (mode === 'reset') {
+        await resetPassword(email);
+        setInfo('Te enviamos un enlace para restablecer tu contraseña. Revisa también la carpeta de correo no deseado.');
+      } else if (mode === 'login') {
         await login(email, password);
       } else {
         await register(email, password, displayName);
@@ -43,18 +47,6 @@ export function AuthScreen() {
       setError(err?.message?.startsWith('Esta cuenta fue eliminada') ? err.message : translateError(err?.code));
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const handlePasswordReset = async () => {
-    setError('');
-    setInfo('');
-    if (!email) { setError('Escribe tu correo para enviarte el enlace de recuperación.'); return; }
-    try {
-      await resetPassword(email);
-      setInfo('Te enviamos un enlace para restablecer tu contraseña. Revisa también tu carpeta de correo no deseado.');
-    } catch (err: any) {
-      setError(translateError(err?.code));
     }
   };
 
@@ -106,12 +98,12 @@ export function AuthScreen() {
         <div className="w-full max-w-md animate-fade-in">
           <div className="mb-10 lg:hidden"><BrandLogo /></div>
           <div className="mb-7">
-            <p className="eyebrow">{mode === 'login' ? 'Bienvenido de nuevo' : 'Empieza hoy'}</p>
+            <p className="eyebrow">{mode === 'login' ? 'Bienvenido de nuevo' : mode === 'reset' ? 'Recupera tu acceso' : 'Empieza hoy'}</p>
             <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-slate-950 dark:text-white">
-              {mode === 'login' ? 'Accede a tu clínica' : 'Crea tu cuenta'}
+              {mode === 'login' ? 'Accede a tu clínica' : mode === 'reset' ? 'Restablece tu contraseña' : 'Crea tu cuenta'}
             </h2>
             <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-              {mode === 'login' ? 'Ingresa tus datos para continuar donde lo dejaste.' : 'Centraliza la operación diaria de tu clínica.'}
+              {mode === 'login' ? 'Ingresa tus datos para continuar donde lo dejaste.' : mode === 'reset' ? 'Te enviaremos un enlace seguro para crear una nueva contraseña.' : 'Centraliza la operación diaria de tu clínica.'}
             </p>
           </div>
 
@@ -132,17 +124,17 @@ export function AuthScreen() {
             <input required type="email" className={inputClass} value={email} onChange={e => setEmail(e.target.value)} placeholder="correo@ejemplo.com" />
           </div>
 
-          <div>
-            <div className="mb-1.5 flex items-center justify-between"><label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Contraseña <span className="text-danger">*</span></label>{mode === 'login' && <button type="button" onClick={handlePasswordReset} className="text-xs font-semibold text-primary hover:text-primary-hover">¿La olvidaste?</button>}</div>
-            <input required type="password" className={inputClass} value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" />
-          </div>
+          {mode !== 'reset' && <div>
+            <div className="mb-1.5 flex items-center justify-between"><label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Contraseña <span className="text-danger">*</span></label>{mode === 'login' && <button type="button" onClick={() => { setMode('reset'); setError(''); setInfo(''); }} className="text-xs font-semibold text-primary hover:text-primary-hover">¿La olvidaste?</button>}</div>
+            <div className="relative"><input required type={showPassword ? 'text' : 'password'} className={`${inputClass} pr-12`} value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" autoComplete={mode === 'login' ? 'current-password' : 'new-password'} /><button type="button" onClick={() => setShowPassword(value => !value)} className="absolute inset-y-0 right-0 flex w-12 items-center justify-center rounded-r-xl text-slate-400 hover:text-primary" aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'} title={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}>{showPassword ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5"><path d="m3 3 18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 4.2A10.7 10.7 0 0 1 12 4c5 0 8.5 4.2 9.5 8-0.4 1.5-1.3 3-2.7 4.2M6.6 6.6C4.7 8 3.3 10.1 2.5 12c1 3.8 4.5 8 9.5 8 1.5 0 2.9-.4 4.1-1" strokeLinecap="round" strokeLinejoin="round" /></svg> : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5"><path d="M2.5 12S6 4 12 4s9.5 8 9.5 8-3.5 8-9.5 8-9.5-8-9.5-8Z" /><circle cx="12" cy="12" r="3" /></svg>}</button></div>
+          </div>}
 
           <button
             type="submit"
             disabled={submitting}
             className="btn btn-primary h-12 w-full shadow-brand disabled:opacity-60"
           >
-            {submitting ? 'Procesando...' : mode === 'login' ? 'Iniciar sesión' : 'Registrarse'}
+            {submitting ? 'Procesando...' : mode === 'login' ? 'Iniciar sesión' : mode === 'reset' ? 'Enviar enlace de recuperación' : 'Registrarse'}
           </button>
           </form>
 
@@ -153,10 +145,16 @@ export function AuthScreen() {
                 Regístrate
               </button>
             </p>
-          ) : (
+          ) : mode === 'register' ? (
             <p>¿Ya tienes cuenta?{' '}
               <button className="font-semibold text-primary hover:text-primary-hover" onClick={() => { setMode('login'); setError(''); setInfo(''); }}>
                 Inicia sesión
+              </button>
+            </p>
+          ) : (
+            <p>¿Ya recuerdas tu contraseña?{' '}
+              <button className="font-semibold text-primary hover:text-primary-hover" onClick={() => { setMode('login'); setError(''); setInfo(''); }}>
+                Volver a iniciar sesión
               </button>
             </p>
           )}
