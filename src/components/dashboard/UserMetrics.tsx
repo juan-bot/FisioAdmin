@@ -84,8 +84,10 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
     const uniquePatients = new Set(filteredAppointments.map((a: any) => a.patientId)).size;
     const documentedSessions = completed.filter(a => a.sessionNote).length;
     const attendanceRate = totalAppointments ? Math.round((completed.length / totalAppointments) * 100) : 0;
-    const notesWithPain = completed.filter(a => a.sessionNote?.painBefore !== null && a.sessionNote?.painAfter !== null);
-    const averagePainChange = notesWithPain.length ? Math.round((notesWithPain.reduce((sum, a) => sum + (a.sessionNote.painAfter - a.sessionNote.painBefore), 0) / notesWithPain.length) * 10) / 10 : null;
+    const notesWithPain = completed.filter(a => Number.isFinite(a.sessionNote?.painBefore) && Number.isFinite(a.sessionNote?.painAfter));
+    const averagePainChange = notesWithPain.length
+      ? Math.round((notesWithPain.reduce((sum, a) => sum + ((a.sessionNote?.painAfter ?? 0) - (a.sessionNote?.painBefore ?? 0)), 0) / notesWithPain.length) * 10) / 10
+      : null;
     return { totalSales, totalAppointments, uniquePatients, completedSessions: completed.length, documentedSessions, attendanceRate, averagePainChange };
   }, [filteredAppointments]);
 

@@ -1,10 +1,17 @@
+const parseCalendarDate = (date: string) => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  return match
+    ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+    : new Date(date);
+};
+
 export const formatDate = (date: string) => {
-  const d = new Date(date);
+  const d = parseCalendarDate(date);
   return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
 export const formatDateLong = (date: string) => {
-  const d = new Date(date);
+  const d = parseCalendarDate(date);
   return d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 };
 
