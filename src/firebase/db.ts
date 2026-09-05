@@ -141,11 +141,6 @@ export async function createUserProfile(profile: UserProfile): Promise<void> {
   await setDoc(doc(usersCol, profile.uid), profile);
 }
 
-export async function isFirstUser(): Promise<boolean> {
-  const snap = await getDocs(query(usersCol, limit(1)));
-  return snap.empty;
-}
-
 export async function fetchUsers(): Promise<UserProfile[]> {
   const snap = await getDocs(query(usersCol, orderBy('createdAt', 'asc')));
   return snap.docs.map(d => ({ uid: d.id, ...(d.data() as Omit<UserProfile, 'uid'>) }));
@@ -182,13 +177,6 @@ export async function disableUser(uid: string): Promise<void> {
 
 export async function enableUser(uid: string): Promise<void> {
   await updateDoc(doc(usersCol, uid), { disabled: false });
-}
-
-export async function softDeleteUser(uid: string): Promise<void> {
-  await updateDoc(doc(usersCol, uid), { 
-    deletedAt: new Date().toISOString(),
-    disabled: true 
-  });
 }
 
 const settingsCol = collection(db, 'settings');

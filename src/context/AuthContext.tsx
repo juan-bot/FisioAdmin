@@ -10,14 +10,8 @@ import {
   sendPasswordResetEmail,
 } from 'firebase/auth';
 import { auth } from '../firebase/config';
-import {
-  fetchUserProfile,
-  createUserProfile,
-  isFirstUser,
-  UserProfile,
-} from '../firebase/db';
-import { db } from '../firebase/config';
-import { doc, updateDoc, query, where, limit, getDocs } from 'firebase/firestore';
+import { repository } from '../data/repository';
+import type { UserProfile } from '../types';
 
 export type AuthStatus = 'loading' | 'unauthenticated' | 'pending' | 'authenticated';
 
@@ -56,46 +50,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       try {
-         let prof = await fetchUserProfile(fbUser.uid);
+         let prof = await repository.fetchUserProfile(fbUser.uid);
          
          if (!prof) {
-           const first = await isFirstUser();
            prof = {
              uid: fbUser.uid,
              email: fbUser.email || '',
              displayName: fbUser.displayName || (fbUser.email ? fbUser.email.split('@')[0] : 'Usuario'),
-             role: first ? 'admin' : 'pending',
-             approved: first,
+             role: 'pending',
+             approved: false,
              disabled: false,
              createdAt: new Date().toISOString(),
            };
-           await createUserProfile(prof);
+           await repository.createUserProfile(prof);
          }
          
          if (prof.displayName && prof.displayName !== fbUser.displayName) {
            await updateProfile(fbUser, { displayName: prof.displayName });
          }
         
-        if (prof.deletedAt) {
-          // Reactivate deleted account on sign-in (after password reset)
-          await updateDoc(doc(db, 'users', fbUser.uid), {
-            deletedAt: null,
-            disabled: false,
-            approved: false,
-            role: 'pending',
-            updatedAt: new Date().toISOString(),
-          });
-          prof.deletedAt = undefined;
-          prof.disabled = false;
-          prof.approved = false;
-          prof.role = 'pending';
-        }
-        
-        if (prof.disabled) {
+        if (prof.disabled || prof.deletedAt) {
           await signOut(auth);
           setProfile(null);
           setStatus('unauthenticated');
-          setError('Tu cuenta está deshabilitada. Contacta al administrador.');
+          setError(prof.deletedAt ? 'Tu cuenta fue eliminada. Contacta al administrador.' : 'Tu cuenta está deshabilitada. Contacta al administrador.');
           return;
         }
         
@@ -124,36 +102,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const register = async (email: string, password: string, displayName: string) => {
-    try {
-      const cred = await createUserWithEmailAndPassword(auth, email, password);
-      const name = displayName || email.split('@')[0];
-      await updateProfile(cred.user, { displayName: name });
-      const first = await isFirstUser();
-      const prof: UserProfile = {
-        uid: cred.user.uid,
-        email,
-        displayName: name,
-        role: first ? 'admin' : 'pending',
-        approved: first,
-        disabled: false,
-        createdAt: new Date().toISOString(),
-      };
-      await createUserProfile(prof);
-    } catch (err: any) {
-      if (err.code === 'auth/email-already-in-use') {
-        // Check if there's a deleted profile in Firestore
-        const usersSnap = await getDocs(query(usersCol, where('email', '==', email), limit(1)));
-        if (!usersSnap.empty) {
-          const prof = usersSnap.docs[0].data() as UserProfile;
-          if (prof.deletedAt) {
-            // Send password reset email so user can set new password
-            await sendPasswordResetEmail(auth, email);
-            throw new Error('Esta cuenta fue eliminada. Se ha enviado un email para restablecer tu contraseña. Revisa tu bandeja de entrada y usa el enlace para entrar; tu cuenta se reactivará automáticamente.');
-          }
-        }
-      }
-      throw err;
-    }
+    const cred = await createUserWithEmailAndPassword(auth, email, password);
+    const name = displayName || email.split('@')[0];
+    await updateProfile(cred.user, { displayName: name });
+    const prof: UserProfile = {
+      uid: cred.user.uid,
+      email,
+      displayName: name,
+      role: 'pending',
+      approved: false,
+      disabled: false,
+      createdAt: new Date().toISOString(),
+    };
+    await repository.createUserProfile(prof);
   };
 
   const logout = async () => {
@@ -166,7 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshProfile = async () => {
     if (user) {
-      const prof = await fetchUserProfile(user.uid);
+      const prof = await repository.fetchUserProfile(user.uid);
       if (prof) setProfile(prof);
     }
   };

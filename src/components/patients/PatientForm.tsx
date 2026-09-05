@@ -105,8 +105,8 @@ export function PatientForm({ patient, onClose }: PatientFormProps) {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (submissionInFlight.current) return;
-    if (!form.firstName || !form.lastName || !form.phone) {
-      setError('Campos obligatorios: Nombre, Apellido y Teléfono');
+    if (!form.firstName || !form.lastName || !form.phone || !form.dateOfBirth) {
+      setError('Campos obligatorios: Nombre, Apellido, Teléfono y fecha de nacimiento');
       return;
     }
 
@@ -116,7 +116,7 @@ export function PatientForm({ patient, onClose }: PatientFormProps) {
       lastName: form.lastName,
       email: form.email,
       phone: form.phone,
-      dateOfBirth: form.dateOfBirth || new Date().toISOString().split('T')[0],
+      dateOfBirth: form.dateOfBirth,
       gender: form.gender,
       address: form.address,
       emergencyContact: {
@@ -177,8 +177,8 @@ export function PatientForm({ patient, onClose }: PatientFormProps) {
               <input name="phone" className={inputClass} value={form.phone} onChange={handleChange} placeholder="555-123-4567" />
             </div>
             <div>
-              <label className={labelClass}>Fecha de nacimiento</label>
-              <input name="dateOfBirth" type="date" className={inputClass} value={form.dateOfBirth} onChange={handleChange} />
+              <label className={labelClass}>Fecha de nacimiento *</label>
+              <input required name="dateOfBirth" type="date" className={inputClass} value={form.dateOfBirth} onChange={handleChange} />
             </div>
             <div>
               <label className={labelClass}>Género</label>

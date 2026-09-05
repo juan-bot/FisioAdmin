@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card, CardBody, CardHeader } from '../ui/Card';
 import { formatCurrency } from '../../utils/format';
-import { fetchBudget, saveBudget } from '../../firebase/db';
+import { repository } from '../../data/repository';
 
 export function Finance() {
   const { stats, appointments } = useApp();
@@ -13,7 +13,7 @@ export function Finance() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    fetchBudget().then(b => {
+    repository.fetchBudget().then(b => {
       setBudget(b);
       setInput(b ? String(b) : '');
       setLoading(false);
@@ -24,7 +24,7 @@ export function Finance() {
     const value = Number(input) || 0;
     setSaving(true);
     setSaved(false);
-    await saveBudget(value);
+    await repository.saveBudget(value);
     setBudget(value);
     setSaving(false);
     setSaved(true);
@@ -85,7 +85,7 @@ export function Finance() {
       <Card>
         <CardHeader>
           <h3 className="text-lg font-semibold text-gray-900">Presupuesto mensual</h3>
-          <p className="text-sm text-gray-500">Se guarda automáticamente en Firebase</p>
+          <p className="text-sm text-gray-500">Se guarda de forma segura en la configuración de la clínica</p>
         </CardHeader>
         <CardBody>
           <div className="flex flex-col sm:flex-row sm:items-end gap-4">

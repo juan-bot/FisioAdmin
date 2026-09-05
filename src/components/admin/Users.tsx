@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { fetchUsers, fetchAllAppointments, fetchAllPatients, fetchAllProgressRecords, approveUser, updateUserRole, deleteUserDoc, disableUser, enableUser, UserProfile } from '../../firebase/db';
+import { repository } from '../../data/repository';
+import type { Appointment, Patient, ProgressRecord, UserProfile } from '../../types';
 import { UserMetrics } from '../dashboard/UserMetrics';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
@@ -16,12 +17,12 @@ export function Users() {
   const [disableConfirm, setDisableConfirm] = useState<UserProfile | null>(null);
   const [enableConfirm, setEnableConfirm] = useState<UserProfile | null>(null);
   const [selectedUserMetrics, setSelectedUserMetrics] = useState<UserProfile | null>(null);
-  const [clinicData, setClinicData] = useState<{ patients: any[]; appointments: any[]; progress: any[] }>({ patients: [], appointments: [], progress: [] });
+  const [clinicData, setClinicData] = useState<{ patients: Patient[]; appointments: Appointment[]; progress: ProgressRecord[] }>({ patients: [], appointments: [], progress: [] });
 
   const load = async () => {
     setLoading(true);
     try {
-      const [userData, patients, appointments, progress] = await Promise.all([fetchUsers(), fetchAllPatients(), fetchAllAppointments(), fetchAllProgressRecords()]);
+      const [userData, patients, appointments, progress] = await Promise.all([repository.fetchUsers(), repository.fetchAllPatients(), repository.fetchAllAppointments(), repository.fetchAllProgressRecords()]);
       setUsers(userData);
       setClinicData({ patients, appointments, progress });
     } catch {
@@ -33,7 +34,7 @@ export function Users() {
 
   useEffect(() => {
     let active = true;
-    Promise.all([fetchUsers(), fetchAllPatients(), fetchAllAppointments(), fetchAllProgressRecords()])
+    Promise.all([repository.fetchUsers(), repository.fetchAllPatients(), repository.fetchAllAppointments(), repository.fetchAllProgressRecords()])
       .then(([userData, patients, appointments, progress]) => { if (active) { setUsers(userData); setClinicData({ patients, appointments, progress }); } })
       .catch(() => { if (active) setError('No se pudieron cargar los usuarios.'); })
       .finally(() => { if (active) setLoading(false); });
@@ -66,7 +67,7 @@ export function Users() {
 
   const confirmApprove = async () => {
     if (!approveConfirm) return;
-    await approveUser(approveConfirm.uid);
+    await repository.approveUser(approveConfirm.uid);
     load();
     setApproveConfirm(null);
   };
@@ -78,7 +79,7 @@ export function Users() {
 
   const confirmRole = async () => {
     if (!roleConfirm) return;
-    await updateUserRole(roleConfirm.user.uid, roleConfirm.newRole);
+    await repository.updateUserRole(roleConfirm.user.uid, roleConfirm.newRole);
     load();
     setRoleConfirm(null);
   };
@@ -90,7 +91,7 @@ export function Users() {
 
   const confirmDelete = async () => {
     if (!deleteConfirm) return;
-    await deleteUserDoc(deleteConfirm.uid);
+    await repository.deleteUser(deleteConfirm.uid);
     load();
     setDeleteConfirm(null);
   };
@@ -102,7 +103,7 @@ export function Users() {
 
   const confirmDisable = async () => {
     if (!disableConfirm) return;
-    await disableUser(disableConfirm.uid);
+    await repository.disableUser(disableConfirm.uid);
     load();
     setDisableConfirm(null);
   };
@@ -113,7 +114,7 @@ export function Users() {
 
   const confirmEnable = async () => {
     if (!enableConfirm) return;
-    await enableUser(enableConfirm.uid);
+    await repository.enableUser(enableConfirm.uid);
     load();
     setEnableConfirm(null);
   };

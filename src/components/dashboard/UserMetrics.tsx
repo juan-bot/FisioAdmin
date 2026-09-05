@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { fetchAppointmentsByTherapist, fetchPatientsByTherapist, fetchProgressRecordsByTherapist } from '../../firebase/db';
+import { repository } from '../../data/repository';
+import type { Appointment, Patient, ProgressRecord } from '../../types';
 import { Card, CardBody, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import {
@@ -12,7 +13,7 @@ const COLORS = ['#2563eb', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'
 
 type TimeRange = 'week' | 'month' | 'year' | 'all' | 'custom';
 
-function parseAmount(val: any): number {
+function parseAmount(val: number | null | undefined): number {
   if (val == null) return 0;
   const n = parseFloat(String(val));
   return isNaN(n) ? 0 : n;
@@ -45,15 +46,15 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
   const [timeRange, setTimeRange] = useState<TimeRange>('month');
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
-  const [appointments, setAppointments] = useState<any[]>([]);
-  const [patients, setPatients] = useState<any[]>([]);
-  const [progressRecords, setProgressRecords] = useState<any[]>([]);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [progressRecords, setProgressRecords] = useState<ProgressRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshTick, setRefreshTick] = useState(0);
 
   useEffect(() => {
     let active = true;
-    Promise.all([fetchAppointmentsByTherapist(therapistId), fetchPatientsByTherapist(therapistId), fetchProgressRecordsByTherapist(therapistId)])
+    Promise.all([repository.fetchAppointmentsByTherapist(therapistId), repository.fetchPatientsByTherapist(therapistId), repository.fetchProgressRecordsByTherapist(therapistId)])
       .then(([appointmentData, patientData, progressData]) => { if (active) { setAppointments(appointmentData); setPatients(patientData); setProgressRecords(progressData); } })
       .catch(() => undefined)
       .finally(() => { if (active) setLoading(false); });
@@ -76,7 +77,7 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
     // El sistema registra el cobro como monto en la cita; aún no existe un estado de pago separado.
     const totalSales = filteredAppointments.reduce((sum, a) => sum + parseAmount(a.amount), 0);
     const totalAppointments = filteredAppointments.length;
-    const uniquePatients = new Set(filteredAppointments.map((a: any) => a.patientId)).size;
+    const uniquePatients = new Set(filteredAppointments.map(a => a.patientId)).size;
     const documentedSessions = completed.filter(a => a.sessionNote).length;
     const noShows = appointmentsInRange.filter(a => a.status === 'no-show').length;
     const attendedOrMissed = completed.length + noShows;
@@ -99,7 +100,7 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
 
   const salesByPeriod = useMemo(() => {
     const grouped: Record<string, number> = {};
-    filteredAppointments.forEach((a: any) => {
+    filteredAppointments.forEach(a => {
       const date = parseCalendarDate(a.date);
       let key: string;
       switch (timeRange) {
@@ -122,7 +123,7 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
 
   const appointmentsByPeriod = useMemo(() => {
     const grouped: Record<string, number> = {};
-    filteredAppointments.forEach((a: any) => {
+    filteredAppointments.forEach(a => {
       const date = parseCalendarDate(a.date);
       let key: string;
       switch (timeRange) {
@@ -144,11 +145,11 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
   }, [filteredAppointments, timeRange]);
 
   const patientGenderData = useMemo(() => {
-    const patientsSet = new Set(filteredAppointments.map((a: any) => a.patientId));
-    const patientsList = (patients || []).filter((p: any) => patientsSet.has(p.id));
-    const male = patientsList.filter((p: any) => p.gender === 'male').length;
-    const female = patientsList.filter((p: any) => p.gender === 'female').length;
-    const other = patientsList.filter((p: any) => p.gender === 'other').length;
+    const patientsSet = new Set(filteredAppointments.map(a => a.patientId));
+    const patientsList = patients.filter(patient => patientsSet.has(patient.id));
+    const male = patientsList.filter(patient => patient.gender === 'male').length;
+    const female = patientsList.filter(patient => patient.gender === 'female').length;
+    const other = patientsList.filter(patient => patient.gender === 'other').length;
     return [
       { name: 'Masculino', value: male },
       { name: 'Femenino', value: female },
@@ -157,7 +158,7 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
   }, [filteredAppointments, patients]);
 
   const totalPatientsUnique = useMemo(() => {
-    return new Set(filteredAppointments.map((a: any) => a.patientId)).size;
+    return new Set(filteredAppointments.map(a => a.patientId)).size;
   }, [filteredAppointments]);
 
   const handleRefresh = () => {

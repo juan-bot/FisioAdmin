@@ -3,24 +3,7 @@ import { createContext, useContext, useState, useEffect, ReactNode, useMemo, use
 import { Patient, Appointment, Prescription, ProgressRecord, DashboardStats } from '../types';
 import { useAuth } from './AuthContext';
 import { notify } from '../utils/notify';
-import {
-  fetchPatients,
-  createPatient,
-  updatePatientDoc,
-  deletePatientDoc,
-  fetchAppointments,
-  createAppointment,
-  updateAppointmentDoc,
-  deleteAppointmentDoc,
-  fetchPrescriptions,
-  createPrescription,
-  updatePrescriptionDoc,
-  deletePrescriptionDoc,
-  fetchProgressRecords,
-  createProgressRecord,
-  updateProgressRecordDoc,
-  deleteProgressRecordDoc,
-} from '../firebase/db';
+import { repository } from '../data/repository';
 
 export const CURRENT_THERAPIST = { id: 't1', name: 'Belén Peña' };
 
@@ -70,10 +53,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     let active = true;
     const therapistId = profile?.uid || '';
     Promise.all([
-      fetchPatients(therapistId),
-      fetchAppointments(therapistId),
-      fetchPrescriptions(therapistId),
-      fetchProgressRecords(therapistId),
+      repository.fetchPatients(therapistId),
+      repository.fetchAppointments(therapistId),
+      repository.fetchPrescriptions(therapistId),
+      repository.fetchProgressRecords(therapistId),
     ])
       .then(([p, a, pr, pg]) => {
         if (!active) return;
@@ -83,7 +66,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setProgressRecords(pg);
       })
       .catch((error) => {
-        console.error('Error loading data from Firestore:', error);
+        console.error('Error loading clinic data:', error);
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -103,7 +86,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const addPatient = useCallback(async (data: Omit<Patient, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
-      const id = await createPatient(data);
+      const id = await repository.createPatient(data);
       const now = new Date().toISOString();
       setPatients(prev => [{ ...data, id, createdAt: now, updatedAt: now }, ...prev]);
       notify('Paciente creado correctamente.');
@@ -111,57 +94,57 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updatePatient = useCallback(async (id: string, data: Partial<Patient>) => {
-    try { await updatePatientDoc(id, data); setPatients(prev => prev.map(p => p.id === id ? { ...p, ...data, updatedAt: new Date().toISOString() } : p)); notify('Expediente actualizado.'); }
+    try { await repository.updatePatient(id, data); setPatients(prev => prev.map(p => p.id === id ? { ...p, ...data, updatedAt: new Date().toISOString() } : p)); notify('Expediente actualizado.'); }
     catch (error) { notify('No fue posible actualizar el expediente.', 'error'); throw error; }
   }, []);
 
   const deletePatient = useCallback(async (id: string) => {
-    try { await deletePatientDoc(id); setPatients(prev => prev.filter(p => p.id !== id)); notify('Paciente eliminado.'); }
+    try { await repository.deletePatient(id); setPatients(prev => prev.filter(p => p.id !== id)); notify('Paciente eliminado.'); }
     catch (error) { notify('No fue posible eliminar al paciente.', 'error'); throw error; }
   }, []);
 
   const addAppointment = useCallback(async (data: Omit<Appointment, 'id' | 'createdAt' | 'updatedAt'>) => {
-    try { const id = await createAppointment(data); const now = new Date().toISOString(); setAppointments(prev => [{ ...data, id, createdAt: now, updatedAt: now }, ...prev]); notify('Cita guardada correctamente.'); }
+    try { const id = await repository.createAppointment(data); const now = new Date().toISOString(); setAppointments(prev => [{ ...data, id, createdAt: now, updatedAt: now }, ...prev]); notify('Cita guardada correctamente.'); }
     catch (error) { notify('No fue posible guardar la cita.', 'error'); throw error; }
   }, []);
 
   const updateAppointment = useCallback(async (id: string, data: Partial<Appointment>) => {
-    try { await updateAppointmentDoc(id, data); setAppointments(prev => prev.map(a => a.id === id ? { ...a, ...data, updatedAt: new Date().toISOString() } : a)); notify('Cita actualizada.'); }
+    try { await repository.updateAppointment(id, data); setAppointments(prev => prev.map(a => a.id === id ? { ...a, ...data, updatedAt: new Date().toISOString() } : a)); notify('Cita actualizada.'); }
     catch (error) { notify('No fue posible actualizar la cita.', 'error'); throw error; }
   }, []);
 
   const deleteAppointment = useCallback(async (id: string) => {
-    try { await deleteAppointmentDoc(id); setAppointments(prev => prev.filter(a => a.id !== id)); notify('Cita eliminada.'); }
+    try { await repository.deleteAppointment(id); setAppointments(prev => prev.filter(a => a.id !== id)); notify('Cita eliminada.'); }
     catch (error) { notify('No fue posible eliminar la cita.', 'error'); throw error; }
   }, []);
 
   const addPrescription = useCallback(async (data: Omit<Prescription, 'id' | 'createdAt' | 'updatedAt'>) => {
-    try { const id = await createPrescription(data); const now = new Date().toISOString(); setPrescriptions(prev => [{ ...data, id, createdAt: now, updatedAt: now }, ...prev]); notify('Plan terapéutico guardado.'); }
+    try { const id = await repository.createPrescription(data); const now = new Date().toISOString(); setPrescriptions(prev => [{ ...data, id, createdAt: now, updatedAt: now }, ...prev]); notify('Plan terapéutico guardado.'); }
     catch (error) { notify('No fue posible guardar el plan terapéutico.', 'error'); throw error; }
   }, []);
 
   const updatePrescription = useCallback(async (id: string, data: Partial<Prescription>) => {
-    try { await updatePrescriptionDoc(id, data); setPrescriptions(prev => prev.map(p => p.id === id ? { ...p, ...data, updatedAt: new Date().toISOString() } : p)); notify('Plan terapéutico actualizado.'); }
+    try { await repository.updatePrescription(id, data); setPrescriptions(prev => prev.map(p => p.id === id ? { ...p, ...data, updatedAt: new Date().toISOString() } : p)); notify('Plan terapéutico actualizado.'); }
     catch (error) { notify('No fue posible actualizar el plan terapéutico.', 'error'); throw error; }
   }, []);
 
   const deletePrescription = useCallback(async (id: string) => {
-    try { await deletePrescriptionDoc(id); setPrescriptions(prev => prev.filter(p => p.id !== id)); notify('Plan terapéutico eliminado.'); }
+    try { await repository.deletePrescription(id); setPrescriptions(prev => prev.filter(p => p.id !== id)); notify('Plan terapéutico eliminado.'); }
     catch (error) { notify('No fue posible eliminar el plan terapéutico.', 'error'); throw error; }
   }, []);
 
   const addProgressRecord = useCallback(async (data: Omit<ProgressRecord, 'id' | 'createdAt' | 'updatedAt'>) => {
-    try { const id = await createProgressRecord(data); const now = new Date().toISOString(); setProgressRecords(prev => [{ ...data, id, createdAt: now, updatedAt: now }, ...prev]); notify('Evolución clínica guardada.'); }
+    try { const id = await repository.createProgressRecord(data); const now = new Date().toISOString(); setProgressRecords(prev => [{ ...data, id, createdAt: now, updatedAt: now }, ...prev]); notify('Evolución clínica guardada.'); }
     catch (error) { notify('No fue posible guardar la evolución.', 'error'); throw error; }
   }, []);
 
   const updateProgressRecord = useCallback(async (id: string, data: Partial<ProgressRecord>) => {
-    try { await updateProgressRecordDoc(id, data); setProgressRecords(prev => prev.map(r => r.id === id ? { ...r, ...data, updatedAt: new Date().toISOString() } : r)); notify('Evolución clínica actualizada.'); }
+    try { await repository.updateProgressRecord(id, data); setProgressRecords(prev => prev.map(r => r.id === id ? { ...r, ...data, updatedAt: new Date().toISOString() } : r)); notify('Evolución clínica actualizada.'); }
     catch (error) { notify('No fue posible actualizar la evolución.', 'error'); throw error; }
   }, []);
 
   const deleteProgressRecord = useCallback(async (id: string) => {
-    try { await deleteProgressRecordDoc(id); setProgressRecords(prev => prev.filter(r => r.id !== id)); notify('Evolución clínica eliminada.'); }
+    try { await repository.deleteProgressRecord(id); setProgressRecords(prev => prev.filter(r => r.id !== id)); notify('Evolución clínica eliminada.'); }
     catch (error) { notify('No fue posible eliminar la evolución.', 'error'); throw error; }
   }, []);
 

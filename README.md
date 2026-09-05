@@ -48,9 +48,10 @@ cp .env.example .env
 Las variables son `VITE_FIREBASE_*`. En CI se inyectan desde los **GitHub Secrets**, por lo
 que nunca se commitean las claves reales.
 
-### Reglas de seguridad
+### Reglas de seguridad y primer administrador
 
-Despliega `firestore.rules` (permite sólo lectura/escritura a usuarios autenticados):
+Despliega `firestore.rules`. Las reglas aíslan los datos de cada terapeuta y
+reservan las operaciones globales para administradores:
 
 ```bash
 firebase deploy --only firestore:rules
@@ -58,8 +59,11 @@ firebase deploy --only firestore:rules
 
 ### Autorización de usuarios
 
-- El **primer usuario** en registrarse se convierte automáticamente en **administrador**.
-- Los registros siguientes quedan en estado **pendiente** y no pueden entrar hasta que un
+- Todos los registros nuevos quedan en estado **pendiente**. Antes de abrir el registro
+  público, crea el primer documento `users/{uid}` desde la consola de Firebase con
+  `role: "admin"`, `approved: true` y `disabled: false`. Así se evita que registros
+  simultáneos puedan autoasignarse privilegios de administrador.
+- Los registros siguientes no pueden entrar hasta que un
   administrador los apruebe desde la sección **Usuarios** (visible solo para admins).
 - Un administrador puede además cambiar el rol (admin/terapeuta) o eliminar usuarios.
 
@@ -98,9 +102,17 @@ src/
 │   ├── therapists/      # Therapist management
 │   └── ui/              # Base components (Card, Button, Modal)
 ├── context/             # Global state (AppContext)
+├── data/                # Contrato de persistencia y composición del proveedor
 ├── types/               # TypeScript definitions
 └── utils/               # Formatting utilities
 ```
+
+### Cambiar de base de datos
+
+Los componentes y contextos no conocen Firebase. Su única dependencia de datos es
+`src/data/repository.ts`, tipada por `src/data/contracts.ts`. Para migrar, implementa
+`ClinicRepository` en un adaptador nuevo (por ejemplo `src/data/supabase/`) y sustituye
+el adaptador importado en `repository.ts`; no se deben modificar pantallas ni contextos.
 
 ## Visual Theme
 
