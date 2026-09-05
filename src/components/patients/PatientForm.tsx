@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Patient } from '../../types';
+import { getAge } from '../../utils/format';
 
 interface FamilyHistoryEntry {
   member: string;
@@ -68,6 +69,7 @@ export function PatientForm({ patient, onClose }: PatientFormProps) {
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const submissionInFlight = useRef(false);
+  const calculatedAge = getAge(form.dateOfBirth);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -105,11 +107,10 @@ export function PatientForm({ patient, onClose }: PatientFormProps) {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (submissionInFlight.current) return;
-    if (!form.firstName || !form.lastName || !form.phone || !form.dateOfBirth) {
-      setError('Campos obligatorios: Nombre, Apellido, Teléfono y fecha de nacimiento');
+    if (!form.firstName || !form.lastName || !form.dateOfBirth) {
+      setError('Campos obligatorios: Nombre, Apellido y fecha de nacimiento');
       return;
     }
-
     const patientData = {
       ...(!patient && { therapistId: currentTherapist.id }),
       firstName: form.firstName,
@@ -173,12 +174,16 @@ export function PatientForm({ patient, onClose }: PatientFormProps) {
               <input name="email" type="email" className={inputClass} value={form.email} onChange={handleChange} placeholder="email@ejemplo.com" />
             </div>
             <div>
-              <label className={labelClass}>Teléfono *</label>
+              <label className={labelClass}>Teléfono</label>
               <input name="phone" className={inputClass} value={form.phone} onChange={handleChange} placeholder="555-123-4567" />
             </div>
             <div>
               <label className={labelClass}>Fecha de nacimiento *</label>
               <input required name="dateOfBirth" type="date" className={inputClass} value={form.dateOfBirth} onChange={handleChange} />
+            </div>
+            <div>
+              <label className={labelClass}>Edad</label>
+              <input readOnly aria-readonly="true" className={`${inputClass} bg-gray-50 text-gray-500`} value={calculatedAge ?? ''} placeholder="Se calcula con la fecha" />
             </div>
             <div>
               <label className={labelClass}>Género</label>

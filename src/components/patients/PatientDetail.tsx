@@ -6,7 +6,7 @@ import { Modal } from '../ui/Modal';
 import { PatientForm } from './PatientForm';
 import { ClinicalHistoryForm } from './ClinicalHistoryForm';
 import { PatientDocuments } from './PatientDocuments';
-import { formatDate, getStatusLabel, getAppointmentTypeLabel, formatTime, formatCurrency, getInitials } from '../../utils/format';
+import { formatDate, getAge, getStatusLabel, getAppointmentTypeLabel, formatTime, formatCurrency, getInitials } from '../../utils/format';
 
 function PatientProgressChart({ patientId }: { patientId: string }) {
   const { progressRecords } = useApp();
@@ -154,6 +154,10 @@ export default function PatientDetail({ patientId, onBack, onCreateAppointment, 
                 <div>
                   <p className="text-xs text-gray-500 font-medium">Nacimiento</p>
                   <p className="text-sm text-gray-900">{formatDate(patient.dateOfBirth)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-medium">Edad</p>
+                  <p className="text-sm text-gray-900">{getAge(patient.dateOfBirth) ?? '—'}{getAge(patient.dateOfBirth) !== null ? ' años' : ''}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 font-medium">Dirección</p>

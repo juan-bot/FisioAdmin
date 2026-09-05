@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, memo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card, CardBody, CardHeader } from '../ui/Card';
-import { formatCurrency, getAppointmentTypeLabel } from '../../utils/format';
+import { formatCurrency, getAge, getAppointmentTypeLabel } from '../../utils/format';
 import { Patient } from '../../types';
 
 const MONTHS: Date[] = (() => {
@@ -205,7 +205,8 @@ export default function Metrics() {
 
   const patientsByAge = useMemo(() =>
     patients.reduce((acc: Record<string, number>, p: Patient) => {
-      const age = new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear();
+      const age = getAge(p.dateOfBirth);
+      if (age === null) return acc;
       const range = age < 18 ? '<18' : age < 30 ? '18-29' : age < 45 ? '30-44' : age < 60 ? '45-59' : '60+';
       acc[range] = (acc[range] || 0) + 1;
       return acc;

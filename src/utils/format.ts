@@ -5,6 +5,18 @@ const parseCalendarDate = (date: string) => {
     : new Date(date);
 };
 
+/** Calculates age from a calendar date without UTC date-shift issues. */
+export const getAge = (dateOfBirth: string, referenceDate = new Date()): number | null => {
+  const birthDate = parseCalendarDate(dateOfBirth);
+  if (Number.isNaN(birthDate.getTime()) || birthDate > referenceDate) return null;
+
+  let age = referenceDate.getFullYear() - birthDate.getFullYear();
+  const hasHadBirthday = referenceDate.getMonth() > birthDate.getMonth()
+    || (referenceDate.getMonth() === birthDate.getMonth() && referenceDate.getDate() >= birthDate.getDate());
+  if (!hasHadBirthday) age -= 1;
+  return age;
+};
+
 export const formatDate = (date: string) => {
   const d = parseCalendarDate(date);
   return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
