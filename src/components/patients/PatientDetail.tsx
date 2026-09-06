@@ -118,8 +118,8 @@ export default function PatientDetail({ patientId, onBack, onCreateAppointment, 
           <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center text-white font-bold">
             {getInitials(`${patient.firstName} ${patient.lastName}`)}
           </div>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">{patient.firstName} {patient.lastName}</h2>
+          <div className="min-w-0">
+            <h2 className="break-words text-2xl font-bold text-gray-900">{patient.firstName} {patient.lastName}</h2>
             <div className="flex items-center gap-2 mt-1">
               <span className={`badge ${patient.status === 'active' ? 'badge-success' : 'badge-secondary'}`}>{getStatusLabel(patient.status)}</span>
               <span className="text-sm text-gray-500">Registrado el {formatDate(patient.createdAt)}</span>
@@ -142,28 +142,28 @@ export default function PatientDetail({ patientId, onBack, onCreateAppointment, 
               <h3 className="text-lg font-semibold text-gray-900">Información Personal</h3>
             </CardHeader>
             <CardBody>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="min-w-0 sm:col-span-2 xl:col-span-1">
                   <p className="text-xs text-gray-500 font-medium">Email</p>
-                  <p className="text-sm text-gray-900">{patient.email || '—'}</p>
+                  <p className="break-words text-sm text-gray-900">{patient.email || '—'}</p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs text-gray-500 font-medium">Teléfono</p>
-                  <p className="text-sm text-gray-900">{patient.phone}</p>
+                  <p className="break-words text-sm text-gray-900">{patient.phone || '—'}</p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs text-gray-500 font-medium">Nacimiento</p>
                   <p className="text-sm text-gray-900">{formatDate(patient.dateOfBirth)}</p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs text-gray-500 font-medium">Edad</p>
                   <p className="text-sm text-gray-900">{getAge(patient.dateOfBirth) ?? '—'}{getAge(patient.dateOfBirth) !== null ? ' años' : ''}</p>
                 </div>
-                <div>
+                <div className="min-w-0 sm:col-span-2 xl:col-span-1">
                   <p className="text-xs text-gray-500 font-medium">Dirección</p>
-                  <p className="text-sm text-gray-900">{patient.address || '—'}</p>
+                  <p className="break-words text-sm text-gray-900">{patient.address || '—'}</p>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <p className="text-xs text-gray-500 font-medium">Género</p>
                   <p className="text-sm text-gray-900">{patient.gender === 'male' ? 'Masculino' : patient.gender === 'female' ? 'Femenino' : 'Otro'}</p>
                 </div>
@@ -171,18 +171,18 @@ export default function PatientDetail({ patientId, onBack, onCreateAppointment, 
 
               <div className="mt-6">
                 <h4 className="text-sm font-semibold text-gray-700 mb-2">Contacto de Emergencia</h4>
-                <div className="grid grid-cols-3 gap-4 p-3 bg-gray-50 rounded-lg">
-                  <div>
+                <div className="grid grid-cols-1 gap-4 rounded-lg bg-gray-50 p-3 sm:grid-cols-3">
+                  <div className="min-w-0">
                     <p className="text-xs text-gray-500 font-medium">Nombre</p>
-                    <p className="text-sm text-gray-900">{patient.emergencyContact.name || '—'}</p>
+                    <p className="break-words text-sm text-gray-900">{patient.emergencyContact.name || '—'}</p>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs text-gray-500 font-medium">Teléfono</p>
-                    <p className="text-sm text-gray-900">{patient.emergencyContact.phone || '—'}</p>
+                    <p className="break-words text-sm text-gray-900">{patient.emergencyContact.phone || '—'}</p>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs text-gray-500 font-medium">Relación</p>
-                    <p className="text-sm text-gray-900">{patient.emergencyContact.relationship || '—'}</p>
+                    <p className="break-words text-sm text-gray-900">{patient.emergencyContact.relationship || '—'}</p>
                   </div>
                 </div>
               </div>
@@ -197,8 +197,8 @@ export default function PatientDetail({ patientId, onBack, onCreateAppointment, 
             <CardBody>
               {patient.clinicalAssessment ? (
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800/60"><p className="text-xs font-semibold text-slate-400">Motivo de consulta</p><p className="mt-2 text-sm text-slate-800 dark:text-slate-200">{patient.clinicalAssessment.reasonForConsultation || 'Sin registrar'}</p></div>
-                  <div className="rounded-xl bg-slate-50 p-4 dark:bg-slate-800/60"><p className="text-xs font-semibold text-slate-400">Diagnóstico fisioterapéutico</p><p className="mt-2 text-sm text-slate-800 dark:text-slate-200">{patient.clinicalAssessment.physiotherapyDiagnosis || 'Pendiente de diagnóstico'}</p></div>
+                  <div className="min-w-0 rounded-xl bg-slate-50 p-4 dark:bg-slate-800/60"><p className="text-xs font-semibold text-slate-400">Motivo de consulta</p><p className="mt-2 break-words whitespace-pre-wrap text-sm text-slate-800 dark:text-slate-200">{patient.clinicalAssessment.reasonForConsultation || 'Sin registrar'}</p></div>
+                  <div className="min-w-0 rounded-xl bg-slate-50 p-4 dark:bg-slate-800/60"><p className="text-xs font-semibold text-slate-400">Diagnóstico fisioterapéutico</p><p className="mt-2 break-words whitespace-pre-wrap text-sm text-slate-800 dark:text-slate-200">{patient.clinicalAssessment.physiotherapyDiagnosis || 'Pendiente de diagnóstico'}</p></div>
                   <div className="sm:col-span-2 flex flex-wrap gap-2 text-xs"><span className="badge badge-info">TA {patient.clinicalAssessment.vitalSigns.bloodPressure || '—'}</span><span className="badge badge-info">Dolor {patient.clinicalAssessment.painAssessment.intensity || '—'}/10</span><span className="badge badge-secondary">{patient.clinicalAssessment.goniometry.filter(item => item.right || item.left).length} mediciones goniométricas</span></div>
                 </div>
               ) : (
@@ -211,18 +211,18 @@ export default function PatientDetail({ patientId, onBack, onCreateAppointment, 
             <CardHeader>
               <h3 className="text-lg font-semibold text-gray-900">Historial Médico</h3>
             </CardHeader>
-            <CardBody>
+            <CardBody className="[overflow-wrap:anywhere]">
               <div className="space-y-4">
                 <div>
                   <p className="text-xs text-gray-500 font-medium">Antecedentes</p>
-                  <p className="text-sm text-gray-900 mt-1">{patient.medicalHistory || 'Sin antecedentes registrados'}</p>
+                  <p className="mt-1 break-words whitespace-pre-wrap text-sm text-gray-900">{patient.medicalHistory || 'Sin antecedentes registrados'}</p>
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 font-medium">Antecedentes Familiares</p>
                   {patient.familyMedicalHistory.length > 0 ? (
                     <div className="mt-1 space-y-1">
                       {patient.familyMedicalHistory.map((entry, i) => (
-                        <p key={i} className="text-sm text-gray-900">
+                        <p key={i} className="break-words text-sm text-gray-900">
                           <span className="font-medium">{entry.member}:</span> {entry.condition}
                         </p>
                       ))}
@@ -231,20 +231,20 @@ export default function PatientDetail({ patientId, onBack, onCreateAppointment, 
                     <p className="text-sm text-gray-900 mt-1">Sin antecedentes familiares</p>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="min-w-0">
                     <p className="text-xs text-gray-500 font-medium">Alergias</p>
-                    <p className={`text-sm mt-1 ${patient.allergies && patient.allergies !== 'Ninguna' ? 'text-danger' : 'text-gray-900'}`}>{patient.allergies || '—'}</p>
+                    <p className={`mt-1 break-words whitespace-pre-wrap text-sm ${patient.allergies && patient.allergies !== 'Ninguna' ? 'text-danger' : 'text-gray-900'}`}>{patient.allergies || '—'}</p>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs text-gray-500 font-medium">Medicamentos</p>
-                    <p className="text-sm text-gray-900 mt-1">{patient.medications || '—'}</p>
+                    <p className="mt-1 break-words whitespace-pre-wrap text-sm text-gray-900">{patient.medications || '—'}</p>
                   </div>
                 </div>
                 {patient.notes && (
                   <div>
                     <p className="text-xs text-gray-500 font-medium">Notas</p>
-                    <p className="text-sm text-gray-900 mt-1">{patient.notes}</p>
+                    <p className="mt-1 break-words whitespace-pre-wrap text-sm text-gray-900">{patient.notes}</p>
                   </div>
                 )}
               </div>
