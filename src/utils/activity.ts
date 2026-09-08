@@ -1,4 +1,4 @@
-import { useCallback, useRef, useEffect } from 'react';
+import { useCallback, useRef, useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { logUserActivity } from '../firebase/db';
 
@@ -14,10 +14,13 @@ function getSessionId(): string {
 export function useActivityTracking() {
   const { profile } = useAuth();
   const pageHistory = useRef<string[]>([]);
+  const initialized = useRef(false);
+  const [sessionId] = useState(() => getSessionId());
 
   useEffect(() => {
     if (!profile || profile.role !== 'therapist') return;
-    const sessionId = getSessionId();
+    if (initialized.current) return;
+    initialized.current = true;
 
     const log = async (action: string, details: string, page: string) => {
       try {
@@ -29,8 +32,8 @@ export function useActivityTracking() {
           page,
           sessionId,
         });
-      } catch {
-        console.warn('No se pudo registrar la actividad:', action);
+      } catch (e) {
+        console.warn('No se pudo registrar la actividad:', action, e);
       }
     };
 
@@ -48,14 +51,13 @@ export function useActivityTracking() {
     handlePageChange();
 
     window.addEventListener('hashchange', handlePageChange);
-    window.addEventListener('load', handlePageChange);
 
     return () => {
       window.removeEventListener('hashchange', handlePageChange);
-      window.removeEventListener('load', handlePageChange);
+      initialized.current = false;
       log('logout', 'Sesión cerrada', '');
     };
-  }, [profile]);
+  }, [profile?.uid, profile?.role, sessionId]);
 
   const trackClick = useCallback((elementName: string, page: string, extra?: string) => {
     if (!profile || profile.role !== 'therapist') return;
@@ -65,15 +67,11 @@ export function useActivityTracking() {
       action: 'click',
       details: extra ? `${elementName}: ${extra}` : elementName,
       page,
-      sessionId: getSessionId(),
+      sessionId,
     }).catch(() => console.warn('No se pudo registrar el click:', elementName));
-  }, [profile]);
+  }, [profile?.uid, profile?.role, sessionId]);
 
   return { trackClick };
-}
-
-export function generateSessionId(): string {
-  return getSessionId();
 }
 
 export function formatLastActivity(timestamp: string): string {
@@ -89,4 +87,16 @@ export function formatLastActivity(timestamp: string): string {
   if (diffHour < 24) return `Hace ${diffHour}h`;
   if (diffDay < 7) return `Hace ${diffDay}d`;
   return date.toLocaleDateString('es-MX');
+}
+
+export function formatTimestamp(timestamp: string): string {
+  return new Date(timestamp).toLocaleString('es-MX', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
 }

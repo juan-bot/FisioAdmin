@@ -8,7 +8,7 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area,
 } from 'recharts';
 import { formatCurrency } from '../../utils/format';
-import { formatLastActivity } from '../../utils/activity';
+import { formatLastActivity, formatTimestamp } from '../../utils/activity';
 
 const COLORS = ['#2563eb', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
@@ -335,7 +335,7 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
                         </td>
                         <td className="px-4 py-3 text-gray-600">{activity.details}</td>
                         <td className="px-4 py-3 text-gray-500">{activity.page || '-'}</td>
-                        <td className="px-4 py-3 text-gray-500">{formatLastActivity(activity.timestamp)}</td>
+                        <td className="px-4 py-3 text-gray-500">{formatTimestamp(activity.timestamp)}</td>
                       </tr>
                     ))}
                   </tbody>
