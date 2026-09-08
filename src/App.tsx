@@ -7,6 +7,7 @@ import { ToastViewport } from './components/ui/ToastViewport';
 import { Sidebar } from './components/layout/Sidebar';
 import { Footer } from './components/layout/Footer';
 import { AuthScreen } from './components/auth/AuthScreen';
+import { useActivityTracking } from './utils/activity';
 const Dashboard = lazy(() => import('./components/dashboard/Dashboard'));
 const Patients = lazy(() => import('./components/patients/Patients'));
 const PatientDetail = lazy(() => import('./components/patients/PatientDetail'));
@@ -80,6 +81,7 @@ const baseNavItems = [
 
 function MainContent() {
   const { isAdmin } = useAuth();
+  useActivityTracking();
   const initialRoute = window.location.hash.replace(/^#\/?/, '').split('/');
   const [activeTab, setActiveTab] = useState(initialRoute[0] === 'patients' && initialRoute[1] ? 'patient-detail' : initialRoute[0] || 'dashboard');
   const [viewingPatientId, setViewingPatientId] = useState<string | null>(initialRoute[0] === 'patients' ? initialRoute[1] || null : null);

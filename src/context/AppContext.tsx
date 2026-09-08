@@ -1,6 +1,6 @@
 /* eslint-disable react/only-export-components -- provider and hook intentionally share one module */
 import { createContext, useContext, useState, useEffect, ReactNode, useMemo, useCallback } from 'react';
-import { Patient, Appointment, Prescription, ProgressRecord, DashboardStats } from '../types';
+import { Patient, Appointment, Prescription, ProgressRecord, DashboardStats, UserActivity } from '../types';
 import { useAuth } from './AuthContext';
 import { notify } from '../utils/notify';
 import { repository } from '../data/repository';
@@ -15,6 +15,8 @@ interface AppContextType {
   stats: DashboardStats;
   currentTherapist: { id: string; name: string };
   loading: boolean;
+  activities: UserActivity[];
+  activitiesLoading: boolean;
   addPatient: (patient: Omit<Patient, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   updatePatient: (id: string, data: Partial<Patient>) => Promise<void>;
   deletePatient: (id: string) => Promise<void>;
@@ -37,7 +39,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
   const [progressRecords, setProgressRecords] = useState<ProgressRecord[]>([]);
+  const [activities, setActivities] = useState<UserActivity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activitiesLoading, setActivitiesLoading] = useState(true);
+  const [refreshTick, _setRefreshTick] = useState(0);
 
   useEffect(() => {
     if (status !== 'authenticated') {
@@ -75,6 +80,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       active = false;
     };
   }, [status, profile?.uid]);
+
+  useEffect(() => {
+    if (status !== 'authenticated' || !profile) return;
+    let active = true;
+    repository.fetchUserActivities(profile.uid)
+      .then(data => { if (active) setActivities(data); })
+      .catch(() => undefined)
+      .finally(() => { if (active) setActivitiesLoading(false); });
+    return () => { active = false; };
+  }, [status, profile, refreshTick]);
 
   const currentTherapist = useMemo(() => {
     if (!profile) return CURRENT_THERAPIST;
@@ -197,6 +212,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       stats,
       currentTherapist,
       loading,
+      activities,
+      activitiesLoading,
       addPatient,
       updatePatient,
       deletePatient,

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { repository } from '../../data/repository';
-import type { Appointment, Patient, ProgressRecord } from '../../types';
+import type { Appointment, Patient, ProgressRecord, UserActivity } from '../../types';
 import { Card, CardBody, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import {
@@ -8,6 +8,7 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area,
 } from 'recharts';
 import { formatCurrency } from '../../utils/format';
+import { formatLastActivity } from '../../utils/activity';
 
 const COLORS = ['#2563eb', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
@@ -49,7 +50,9 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [progressRecords, setProgressRecords] = useState<ProgressRecord[]>([]);
+  const [activities, setActivities] = useState<UserActivity[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activitiesLoading, setActivitiesLoading] = useState(true);
   const [refreshTick, setRefreshTick] = useState(0);
 
   useEffect(() => {
@@ -58,6 +61,16 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
       .then(([appointmentData, patientData, progressData]) => { if (active) { setAppointments(appointmentData); setPatients(patientData); setProgressRecords(progressData); } })
       .catch(() => undefined)
       .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [therapistId, refreshTick]);
+
+  useEffect(() => {
+    if (!therapistId) return;
+    let active = true;
+    repository.fetchUserActivities(therapistId)
+      .then(data => { if (active) setActivities(data); })
+      .catch(() => undefined)
+      .finally(() => { if (active) setActivitiesLoading(false); });
     return () => { active = false; };
   }, [therapistId, refreshTick]);
 
@@ -145,24 +158,40 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
   }, [filteredAppointments, timeRange]);
 
   const patientGenderData = useMemo(() => {
-    const patientsSet = new Set(filteredAppointments.map(a => a.patientId));
-    const patientsList = patients.filter(patient => patientsSet.has(patient.id));
-    const male = patientsList.filter(patient => patient.gender === 'male').length;
-    const female = patientsList.filter(patient => patient.gender === 'female').length;
-    const other = patientsList.filter(patient => patient.gender === 'other').length;
+    const male = patients.filter(patient => patient.gender === 'male').length;
+    const female = patients.filter(patient => patient.gender === 'female').length;
+    const other = patients.filter(patient => patient.gender === 'other').length;
+    const total = male + female + other;
+    if (total === 0) return [];
     return [
       { name: 'Masculino', value: male },
       { name: 'Femenino', value: female },
       { name: 'Otro', value: other },
     ].filter((d) => d.value > 0);
-  }, [filteredAppointments, patients]);
+  }, [patients]);
 
   const totalPatientsUnique = useMemo(() => {
     return new Set(filteredAppointments.map(a => a.patientId)).size;
   }, [filteredAppointments]);
 
+  const activitySummary = useMemo(() => {
+    const clicks = activities.filter(a => a.action === 'click');
+    const pageViews = activities.filter(a => a.action === 'page_view');
+    const lastActivity = activities.length > 0 ? activities[0].timestamp : null;
+    const sessions = new Set(activities.map(a => a.sessionId)).size;
+    const actionsByUser = activities.reduce<Record<string, { clicks: number; pages: number; lastActive: string }>>((result, a) => {
+      if (!result[a.userId]) result[a.userId] = { clicks: 0, pages: 0, lastActive: a.timestamp };
+      if (a.action === 'click') result[a.userId].clicks++;
+      if (a.action === 'page_view') result[a.userId].pages++;
+      if (a.timestamp > result[a.userId].lastActive) result[a.userId].lastActive = a.timestamp;
+      return result;
+    }, {});
+    return { clicks: clicks.length, pageViews: pageViews.length, lastActivity, totalSessions: sessions, actionsByUser, recentActivities: activities.slice(0, 10) };
+  }, [activities]);
+
   const handleRefresh = () => {
     setLoading(true);
+    setActivitiesLoading(true);
     setRefreshTick(t => t + 1);
   };
 
@@ -255,6 +284,71 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
           <div className="rounded-xl bg-slate-50 p-3 dark:bg-slate-800"><p className="text-xs font-semibold text-slate-400">Pacientes atendidos</p><p className="mt-1 text-xl font-extrabold text-slate-900 dark:text-white">{metrics.uniquePatients}</p><p className="mt-1 text-[10px] text-slate-400">En el período</p></div>
         </div>
 
+        <div className="mb-6 grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="p-4 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 rounded-xl border border-emerald-500/20">
+            <p className="text-sm text-gray-500 font-medium">Clicks registrados</p>
+            <p className="text-2xl font-bold text-emerald-700 mt-1">{activitySummary.clicks}</p>
+            <p className="mt-1 text-xs text-gray-500">Interacciones en el sistema</p>
+          </div>
+          <div className="p-4 bg-gradient-to-br from-cyan-500/10 to-cyan-500/5 rounded-xl border border-cyan-500/20">
+            <p className="text-sm text-gray-500 font-medium">Páginas visitadas</p>
+            <p className="text-2xl font-bold text-cyan-700 mt-1">{activitySummary.pageViews}</p>
+            <p className="mt-1 text-xs text-gray-500">Navegaciones registradas</p>
+          </div>
+          <div className="p-4 bg-gradient-to-br from-amber-500/10 to-amber-500/5 rounded-xl border border-amber-500/20">
+            <p className="text-sm text-gray-500 font-medium">Última actividad</p>
+            <p className="text-lg font-bold text-amber-700 mt-1">{activitySummary.lastActivity ? formatLastActivity(activitySummary.lastActivity) : 'Sin actividad'}</p>
+            <p className="mt-1 text-xs text-gray-500">{activitySummary.totalSessions} sesiones en este periodo</p>
+          </div>
+          <div className="p-4 bg-gradient-to-br from-rose-500/10 to-rose-500/5 rounded-xl border border-rose-500/20">
+            <p className="text-sm text-gray-500 font-medium">Sesiones activas</p>
+            <p className="text-2xl font-bold text-rose-700 mt-1">{activitySummary.totalSessions}</p>
+            <p className="mt-1 text-xs text-gray-500">Sesiones únicas detectadas</p>
+          </div>
+        </div>
+
+        {activitiesLoading ? (
+          <div className="text-center py-6 text-sm text-gray-500">Cargando actividad...</div>
+        ) : activitySummary.recentActivities.length > 0 ? (
+          <div className="mb-6">
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">Últimas acciones</h4>
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-gray-50 text-gray-500">
+                    <tr>
+                      <th className="text-left px-4 py-3 font-medium">Usuario</th>
+                      <th className="text-left px-4 py-3 font-medium">Acción</th>
+                      <th className="text-left px-4 py-3 font-medium">Detalle</th>
+                      <th className="text-left px-4 py-3 font-medium">Página</th>
+                      <th className="text-left px-4 py-3 font-medium">Hora</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {activitySummary.recentActivities.map(activity => (
+                      <tr key={activity.id}>
+                        <td className="px-4 py-3 font-medium text-gray-900">{activity.userName}</td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${activity.action === 'click' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
+                            {activity.action === 'click' ? 'Click' : 'Navegación'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-gray-600">{activity.details}</td>
+                        <td className="px-4 py-3 text-gray-500">{activity.page || '-'}</td>
+                        <td className="px-4 py-3 text-gray-500">{formatLastActivity(activity.timestamp)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center py-8 text-gray-500 text-sm">
+            No hay actividad registrada para este terapeuta.
+          </div>
+        )}
+
         {filteredAppointments.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             {timeRange === 'custom' && !selectedRange ? 'Selecciona fecha inicial y final para ver el análisis.' : 'No hay citas vigentes en el período seleccionado.'}
@@ -300,10 +394,10 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
             {patientGenderData.length > 0 && (
               <div>
                 <h4 className="text-sm font-semibold text-gray-700 mb-3">Distribución por género</h4>
-                <div className="bg-white rounded-xl border border-gray-200 p-4">
+                <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center justify-center">
                   <ResponsiveContainer width="100%" height={280}>
                     <PieChart>
-                      <Pie data={patientGenderData} cx="50%" cy="50%" outerRadius={100} dataKey="value" label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}>
+                      <Pie data={patientGenderData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={2} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={{ stroke: '#94a3b8', strokeWidth: 1 }}>
                         {patientGenderData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}

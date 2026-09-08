@@ -39,6 +39,8 @@ export const repository: ClinicRepository = {
   enableUser: firebaseStore.enableUser,
   fetchBudget: firebaseStore.fetchBudget,
   saveBudget: firebaseStore.saveBudget,
+  fetchUserActivities: firebaseStore.fetchUserActivities,
+  logUserActivity: firebaseStore.logUserActivity,
 };
 
 export type { ClinicRepository } from './contracts';

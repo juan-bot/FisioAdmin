@@ -56,6 +56,12 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    match /userActivities/{activityId} {
+      allow read: if isAdmin() || ownsRecord();
+      allow create: if signedIn() && createsOwnRecord();
+      allow update, delete: if isAdmin();
+    }
+
     match /settings/{id} {
       allow read, write: if isAdmin();
     }

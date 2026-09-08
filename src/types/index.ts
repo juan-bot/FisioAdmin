@@ -231,6 +231,17 @@ export interface UserProfile {
   deletedAt?: string;
 }
 
+export interface UserActivity {
+  id: string;
+  userId: string;
+  userName: string;
+  action: string;
+  details: string;
+  page: string;
+  timestamp: string;
+  sessionId: string;
+}
+
 export interface ChartData {
   labels: string[];
   datasets: {

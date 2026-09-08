@@ -4,6 +4,7 @@ import type {
   Prescription,
   ProgressRecord,
   UserProfile,
+  UserActivity,
 } from '../types';
 
 type NewRecord<T extends { id: string; createdAt: string; updatedAt: string }> = Omit<T, 'id' | 'createdAt' | 'updatedAt'>;
@@ -45,4 +46,6 @@ export interface ClinicRepository {
   enableUser(uid: string): Promise<void>;
   fetchBudget(): Promise<number>;
   saveBudget(amount: number): Promise<void>;
+  fetchUserActivities(therapistId: string): Promise<UserActivity[]>;
+  logUserActivity(activity: Omit<UserActivity, 'id'>): Promise<string>;
 }

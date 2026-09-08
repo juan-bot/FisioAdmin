@@ -5,9 +5,11 @@ import type { Appointment, Patient, ProgressRecord, UserProfile } from '../../ty
 import { UserMetrics } from '../dashboard/UserMetrics';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
+import { useActivityTracking } from '../../utils/activity';
 
 export function Users() {
   const { profile } = useAuth();
+  const { trackClick } = useActivityTracking();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -226,7 +228,7 @@ export function Users() {
                         )}
                         {u.role === 'therapist' && (
                           <button
-                            onClick={() => setSelectedUserMetrics(u)}
+                            onClick={() => { trackClick('ver_metricas', 'usuarios', u.displayName); setSelectedUserMetrics(u); }}
                             className="mr-3 inline-flex rounded-lg border border-primary/30 bg-primary-lighter px-2.5 py-1.5 text-sm font-bold text-primary-dark transition-colors hover:border-primary hover:bg-primary hover:text-white"
                           >
                             Ver Métricas
@@ -290,7 +292,7 @@ export function Users() {
                   )}
                   {u.role === 'therapist' && (
                     <button
-                      onClick={() => setSelectedUserMetrics(u)}
+                      onClick={() => { trackClick('ver_metricas', 'usuarios', u.displayName); setSelectedUserMetrics(u); }}
                       className="flex-1 rounded-lg bg-primary py-2 text-sm font-bold text-white transition-colors hover:bg-primary-hover"
                     >
                       Ver Métricas

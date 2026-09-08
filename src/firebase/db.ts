@@ -21,6 +21,7 @@ import {
   Prescription,
   ProgressRecord,
   UserProfile,
+  UserActivity,
 } from '../types';
 
 const patientsCol = collection(db, 'patients');
@@ -28,6 +29,7 @@ const appointmentsCol = collection(db, 'appointments');
 const prescriptionsCol = collection(db, 'prescriptions');
 const progressCol = collection(db, 'progressRecords');
 const usersCol = collection(db, 'users');
+const activitiesCol = collection(db, 'userActivities');
 
 export async function fetchPatients(therapistId: string): Promise<Patient[]> {
   const snap = await getDocs(query(patientsCol, where('therapistId', '==', therapistId), orderBy('createdAt', 'desc'), limit(500)));
@@ -177,6 +179,16 @@ export async function disableUser(uid: string): Promise<void> {
 
 export async function enableUser(uid: string): Promise<void> {
   await updateDoc(doc(usersCol, uid), { disabled: false });
+}
+
+export async function fetchUserActivities(therapistId: string): Promise<UserActivity[]> {
+  const snap = await getDocs(query(activitiesCol, where('userId', '==', therapistId), orderBy('timestamp', 'desc'), limit(500)));
+  return snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<UserActivity, 'id'>) }));
+}
+
+export async function logUserActivity(activity: Omit<UserActivity, 'id'>): Promise<string> {
+  const ref = await addDoc(activitiesCol, { ...activity, timestamp: new Date().toISOString() });
+  return ref.id;
 }
 
 const settingsCol = collection(db, 'settings');
