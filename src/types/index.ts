@@ -234,6 +234,7 @@ export interface UserProfile {
 export interface UserActivity {
   id: string;
   userId: string;
+  therapistId: string;
   userName: string;
   action: string;
   details: string;

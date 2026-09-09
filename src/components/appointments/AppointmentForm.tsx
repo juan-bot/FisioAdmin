@@ -60,7 +60,7 @@ export function AppointmentForm({ appointment, onClose, initialPatientId = '' }:
       therapistId: currentTherapist.id,
       therapistName: currentTherapist.name,
       notes: form.notes,
-      amount: form.amount ? Number(form.amount) : 0,
+      amount: form.amount ? Number(form.amount) : null,
     };
 
     if (appointment) {

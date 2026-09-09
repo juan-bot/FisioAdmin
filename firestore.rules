@@ -19,6 +19,13 @@ service cloud.firestore {
       return request.resource.data.therapistId == request.auth.uid;
     }
 
+    function ownsActivity() {
+      // `userId` keeps previously stored activity readable after adding the
+      // ownership field used by all new activity records.
+      return resource.data.userId == request.auth.uid
+        || resource.data.therapistId == request.auth.uid;
+    }
+
     match /patients/{id} {
       allow read: if isAdmin() || ownsRecord();
       allow create: if signedIn() && (isAdmin() || createsOwnRecord());
@@ -57,8 +64,10 @@ service cloud.firestore {
     }
 
     match /userActivities/{activityId} {
-      allow read: if isAdmin() || ownsRecord();
-      allow create: if signedIn() && createsOwnRecord();
+      allow read: if isAdmin() || ownsActivity();
+      allow create: if signedIn()
+        && request.resource.data.userId == request.auth.uid
+        && createsOwnRecord();
       allow update, delete: if isAdmin();
     }
 

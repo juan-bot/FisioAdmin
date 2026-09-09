@@ -53,6 +53,7 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
   const [activities, setActivities] = useState<UserActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [activitiesLoading, setActivitiesLoading] = useState(true);
+  const [activityError, setActivityError] = useState('');
   const [refreshTick, setRefreshTick] = useState(0);
 
   useEffect(() => {
@@ -65,11 +66,16 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
   }, [therapistId, refreshTick]);
 
   useEffect(() => {
-    if (!therapistId) return;
     let active = true;
     repository.fetchUserActivities(therapistId)
-      .then(data => { if (active) setActivities(data); })
-      .catch(() => undefined)
+      .then(data => { if (active) { setActivities(data); setActivityError(''); } })
+      .catch((error: unknown) => {
+        console.error('No se pudo obtener la actividad del terapeuta:', error);
+        if (active) {
+          setActivities([]);
+          setActivityError('No se pudo cargar la actividad. Verifica que las reglas e índice de Firestore estén publicados.');
+        }
+      })
       .finally(() => { if (active) setActivitiesLoading(false); });
     return () => { active = false; };
   }, [therapistId, refreshTick]);
@@ -110,6 +116,14 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
     const averageRecovery = relevant.length ? Math.round(relevant.reduce((sum, record) => sum + (record.mobilityScore + record.strengthScore + record.functionalScore) / 3, 0) / relevant.length) : 0;
     return { activePatients: patients.filter(patient => patient.status === 'active').length, progressEntries: relevant.length, averageRecovery };
   }, [patients, filteredProgress]);
+
+  const amountBreakdown = useMemo(() => {
+    const completedAppointments = filteredAppointments.filter(a => a.status === 'completed');
+    const withAmount = completedAppointments.filter(a => parseAmount(a.amount) > 0);
+    const withoutAmount = completedAppointments.filter(a => parseAmount(a.amount) === 0);
+    const totalCharged = withAmount.reduce((sum, a) => sum + parseAmount(a.amount), 0);
+    return { completedCount: completedAppointments.length, withAmountCount: withAmount.length, withoutAmountCount: withoutAmount.length, totalCharged, appointmentsWithoutAmount: withoutAmount.map(a => ({ id: a.id, patientName: a.patientName, date: a.date, type: a.type })) };
+  }, [filteredAppointments]);
 
   const salesByPeriod = useMemo(() => {
     const grouped: Record<string, number> = {};
@@ -175,19 +189,18 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
   }, [filteredAppointments]);
 
   const activitySummary = useMemo(() => {
-    const clicks = activities.filter(a => a.action === 'click');
-    const pageViews = activities.filter(a => a.action === 'page_view');
-    const lastActivity = activities.length > 0 ? activities[0].timestamp : null;
-    const sessions = new Set(activities.map(a => a.sessionId)).size;
-    const actionsByUser = activities.reduce<Record<string, { clicks: number; pages: number; lastActive: string }>>((result, a) => {
-      if (!result[a.userId]) result[a.userId] = { clicks: 0, pages: 0, lastActive: a.timestamp };
-      if (a.action === 'click') result[a.userId].clicks++;
-      if (a.action === 'page_view') result[a.userId].pages++;
-      if (a.timestamp > result[a.userId].lastActive) result[a.userId].lastActive = a.timestamp;
-      return result;
-    }, {});
-    return { clicks: clicks.length, pageViews: pageViews.length, lastActivity, totalSessions: sessions, actionsByUser, recentActivities: activities.slice(0, 10) };
-  }, [activities]);
+    const activitiesInRange = !selectedRange ? [] : activities.filter(activity => {
+      const timestamp = new Date(activity.timestamp);
+      return timestamp >= selectedRange.start && timestamp <= selectedRange.end;
+    });
+    const clicks = activitiesInRange.filter(a => a.action === 'click');
+    const pageViews = activitiesInRange.filter(a => a.action === 'page_view');
+    const logins = activitiesInRange.filter(a => a.action === 'login');
+    const lastActivity = activitiesInRange.length > 0 ? activitiesInRange[0].timestamp : null;
+    const activeDays = new Set(activitiesInRange.map(a => new Date(a.timestamp).toLocaleDateString('en-CA'))).size;
+    const sessions = new Set(logins.map(a => a.sessionId)).size;
+    return { clicks: clicks.length, pageViews: pageViews.length, logins: logins.length, activeDays, lastActivity, totalSessions: sessions, recentActivities: activitiesInRange.slice(0, 10) };
+  }, [activities, selectedRange]);
 
   const handleRefresh = () => {
     setLoading(true);
@@ -298,17 +311,21 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
           <div className="p-4 bg-gradient-to-br from-amber-500/10 to-amber-500/5 rounded-xl border border-amber-500/20">
             <p className="text-sm text-gray-500 font-medium">Última actividad</p>
             <p className="text-lg font-bold text-amber-700 mt-1">{activitySummary.lastActivity ? formatLastActivity(activitySummary.lastActivity) : 'Sin actividad'}</p>
-            <p className="mt-1 text-xs text-gray-500">{activitySummary.totalSessions} sesiones en este periodo</p>
+            <p className="mt-1 text-xs text-gray-500">{activitySummary.activeDays} días de uso en este período</p>
           </div>
           <div className="p-4 bg-gradient-to-br from-rose-500/10 to-rose-500/5 rounded-xl border border-rose-500/20">
-            <p className="text-sm text-gray-500 font-medium">Sesiones activas</p>
+            <p className="text-sm text-gray-500 font-medium">Sesiones iniciadas</p>
             <p className="text-2xl font-bold text-rose-700 mt-1">{activitySummary.totalSessions}</p>
-            <p className="mt-1 text-xs text-gray-500">Sesiones únicas detectadas</p>
+            <p className="mt-1 text-xs text-gray-500">{activitySummary.logins} accesos registrados</p>
           </div>
         </div>
 
         {activitiesLoading ? (
           <div className="text-center py-6 text-sm text-gray-500">Cargando actividad...</div>
+        ) : activityError ? (
+          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+            {activityError}
+          </div>
         ) : activitySummary.recentActivities.length > 0 ? (
           <div className="mb-6">
             <h4 className="text-sm font-semibold text-gray-700 mb-3">Últimas acciones</h4>
@@ -330,7 +347,7 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
                         <td className="px-4 py-3 font-medium text-gray-900">{activity.userName}</td>
                         <td className="px-4 py-3">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${activity.action === 'click' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800'}`}>
-                            {activity.action === 'click' ? 'Click' : 'Navegación'}
+                            {activity.action === 'click' ? 'Click' : activity.action === 'login' ? 'Inicio de sesión' : activity.action === 'page_view' ? 'Navegación' : activity.action === 'app_active' ? 'Aplicación activa' : 'En segundo plano'}
                           </span>
                         </td>
                         <td className="px-4 py-3 text-gray-600">{activity.details}</td>
@@ -346,6 +363,65 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
         ) : (
           <div className="text-center py-8 text-gray-500 text-sm">
             No hay actividad registrada para este terapeuta.
+          </div>
+        )}
+
+        {filteredAppointments.length > 0 && (
+          <div className="mb-6">
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">Resumen de montos cobrados</h4>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+              <div className="p-4 bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 rounded-xl border border-emerald-500/20">
+                <p className="text-sm text-gray-500 font-medium">Total cobrado</p>
+                <p className="text-2xl font-bold text-emerald-700 mt-1">{formatCurrency(amountBreakdown.totalCharged)}</p>
+                <p className="mt-1 text-xs text-gray-500">{amountBreakdown.withAmountCount} sesiones cobradas</p>
+              </div>
+              <div className="p-4 bg-gradient-to-br from-red-500/10 to-red-500/5 rounded-xl border border-red-500/20">
+                <p className="text-sm text-gray-500 font-medium">Sin monto registrado</p>
+                <p className="text-2xl font-bold text-red-700 mt-1">{amountBreakdown.withoutAmountCount}</p>
+                <p className="mt-1 text-xs text-gray-500">Sesiones cerradas sin cobro</p>
+              </div>
+              <div className="p-4 bg-gradient-to-br from-sky-500/10 to-sky-500/5 rounded-xl border border-sky-500/20">
+                <p className="text-sm text-gray-500 font-medium">Ticket promedio</p>
+                <p className="text-2xl font-bold text-sky-700 mt-1">{amountBreakdown.withAmountCount ? formatCurrency(amountBreakdown.totalCharged / amountBreakdown.withAmountCount) : '$0'}</p>
+                <p className="mt-1 text-xs text-gray-500">Por cita con monto</p>
+              </div>
+              <div className="p-4 bg-gradient-to-br from-amber-500/10 to-amber-500/5 rounded-xl border border-amber-500/20">
+                <p className="text-sm text-gray-500 font-medium">% Cobrado</p>
+                <p className="text-2xl font-bold text-amber-700 mt-1">{amountBreakdown.completedCount ? Math.round((amountBreakdown.withAmountCount / amountBreakdown.completedCount) * 100) : 0}%</p>
+                <p className="mt-1 text-xs text-gray-500">De sesiones completadas</p>
+              </div>
+            </div>
+            {amountBreakdown.appointmentsWithoutAmount.length > 0 && (
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                  <p className="text-sm font-semibold text-gray-700">Citas sin monto registrado ({amountBreakdown.appointmentsWithoutAmount.length})</p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-gray-50 text-gray-500">
+                      <tr>
+                        <th className="text-left px-4 py-3 font-medium">Paciente</th>
+                        <th className="text-left px-4 py-3 font-medium">Fecha</th>
+                        <th className="text-left px-4 py-3 font-medium">Tipo</th>
+                        <th className="text-right px-4 py-3 font-medium">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {amountBreakdown.appointmentsWithoutAmount.slice(0, 10).map(a => (
+                        <tr key={a.id}>
+                          <td className="px-4 py-3 font-medium text-gray-900">{a.patientName}</td>
+                          <td className="px-4 py-3 text-gray-500">{new Date(a.date).toLocaleDateString('es-MX')}</td>
+                          <td className="px-4 py-3 text-gray-500 capitalize">{a.type}</td>
+                          <td className="px-4 py-3 text-right">
+                            <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-medium">Pendiente de cobro</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

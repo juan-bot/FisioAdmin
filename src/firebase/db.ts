@@ -182,12 +182,13 @@ export async function enableUser(uid: string): Promise<void> {
 }
 
 export async function fetchUserActivities(therapistId: string): Promise<UserActivity[]> {
-  const snap = await getDocs(query(activitiesCol, where('userId', '==', therapistId), orderBy('timestamp', 'desc'), limit(500)));
+  // `userId` also retrieves activity recorded before `therapistId` was added.
+  const snap = await getDocs(query(activitiesCol, where('userId', '==', therapistId), orderBy('timestamp', 'desc'), limit(2000)));
   return snap.docs.map(d => ({ id: d.id, ...(d.data() as Omit<UserActivity, 'id'>) }));
 }
 
-export async function logUserActivity(activity: Omit<UserActivity, 'id'>): Promise<string> {
-  const ref = await addDoc(activitiesCol, { ...activity, timestamp: new Date().toISOString() });
+export async function logUserActivity(activity: Omit<UserActivity, 'id' | 'therapistId' | 'timestamp'>): Promise<string> {
+  const ref = await addDoc(activitiesCol, { ...activity, therapistId: activity.userId, timestamp: new Date().toISOString() });
   return ref.id;
 }
 

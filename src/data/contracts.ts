@@ -47,5 +47,5 @@ export interface ClinicRepository {
   fetchBudget(): Promise<number>;
   saveBudget(amount: number): Promise<void>;
   fetchUserActivities(therapistId: string): Promise<UserActivity[]>;
-  logUserActivity(activity: Omit<UserActivity, 'id'>): Promise<string>;
+  logUserActivity(activity: Omit<UserActivity, 'id' | 'therapistId' | 'timestamp'>): Promise<string>;
 }

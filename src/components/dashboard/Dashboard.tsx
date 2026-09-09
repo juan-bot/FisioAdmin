@@ -1,6 +1,7 @@
 import { ReactNode, useMemo } from 'react';
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useApp } from '../../context/AppContext';
+import { useActivityTracking } from '../../utils/activity';
 import { Card, CardBody, CardHeader } from '../ui/Card';
 import { formatCurrency, formatTime, getAppointmentTypeLabel, getStatusLabel } from '../../utils/format';
 
@@ -45,6 +46,7 @@ const tooltipStyle = { color: 'var(--text-main)', background: 'var(--surface-ele
 
 export default function Dashboard({ onNavigate, onCreateAppointment, onViewPatient }: { onNavigate: (tab: string) => void; onCreateAppointment: () => void; onViewPatient: (id: string) => void }) {
   const { appointments, patients, stats, currentTherapist } = useApp();
+  const { trackClick } = useActivityTracking({ trackLifecycle: false });
   const todayISO = useMemo(() => new Date().toISOString().split('T')[0], []);
   const todayAppointments = useMemo(() => appointments.filter(a => a.date === todayISO).sort((a, b) => a.startTime.localeCompare(b.startTime)), [appointments, todayISO]);
   const recentPatients = useMemo(() => patients.slice(0, 5), [patients]);
@@ -70,7 +72,7 @@ export default function Dashboard({ onNavigate, onCreateAppointment, onViewPatie
     <div className="space-y-6 animate-fade-in">
       <div className="page-heading flex items-end justify-between">
         <div><p className="eyebrow">Vista general</p><h1 className="page-title mt-1">Tu clínica, hoy</h1><p className="page-subtitle">Todo lo importante para comenzar el día, {currentTherapist.name.split(' ')[0]}.</p></div>
-        <button onClick={onCreateAppointment} className="btn btn-primary shadow-brand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4"><path d="M12 5v14M5 12h14" strokeLinecap="round" /></svg>Nueva cita</button>
+        <button onClick={() => { trackClick("nueva_cita", "dashboard"); onCreateAppointment(); }} className="btn btn-primary shadow-brand"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4"><path d="M12 5v14M5 12h14" strokeLinecap="round" /></svg>Nueva cita</button>
       </div>
 
       <section className="relative overflow-hidden rounded-3xl bg-[#073f3c] px-6 py-7 text-white shadow-brand-lg sm:px-8">

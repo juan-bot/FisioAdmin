@@ -81,7 +81,7 @@ const baseNavItems = [
 
 function MainContent() {
   const { isAdmin } = useAuth();
-  useActivityTracking();
+  const { trackClick } = useActivityTracking();
   const initialRoute = window.location.hash.replace(/^#\/?/, '').split('/');
   const [activeTab, setActiveTab] = useState(initialRoute[0] === 'patients' && initialRoute[1] ? 'patient-detail' : initialRoute[0] || 'dashboard');
   const [viewingPatientId, setViewingPatientId] = useState<string | null>(initialRoute[0] === 'patients' ? initialRoute[1] || null : null);
@@ -114,7 +114,9 @@ function MainContent() {
 
   const setRoute = (path: string) => {
     const hash = `#/${path}`;
-    if (window.location.hash !== hash) window.history.pushState(null, '', hash);
+    // Assigning the hash emits `hashchange`, which keeps navigation and usage
+    // tracking in sync. `history.pushState` alone does not emit that event.
+    if (window.location.hash !== hash) window.location.hash = `/${path}`;
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -149,6 +151,7 @@ function MainContent() {
   };
 
   const handleTabChange = (tab: string) => {
+    trackClick(tab, 'sidebar');
     setActiveTab(tab);
     setViewingPatientId(null);
     setRoute(tab);

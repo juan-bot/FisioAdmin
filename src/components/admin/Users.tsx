@@ -9,7 +9,7 @@ import { useActivityTracking } from '../../utils/activity';
 
 export function Users() {
   const { profile } = useAuth();
-  const { trackClick } = useActivityTracking();
+  const { trackClick } = useActivityTracking({ trackLifecycle: false });
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -64,6 +64,7 @@ export function Users() {
   }, [users, clinicData]);
 
   const handleApprove = (user: UserProfile) => {
+    trackClick('aprobar_usuario', 'usuarios', user.displayName);
     setApproveConfirm(user);
   };
 
