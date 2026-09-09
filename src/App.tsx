@@ -76,7 +76,6 @@ const baseNavItems = [
   { id: 'prescriptions', label: 'Recetas', icon: icons.prescriptions },
   { id: 'progress', label: 'Progreso', icon: icons.progress },
   { id: 'metrics', label: 'Métricas', icon: icons.metrics },
-  { id: 'finanzas', label: 'Finanzas', icon: icons.finanzas },
 ];
 
 function MainContent() {
@@ -141,7 +140,7 @@ function MainContent() {
   };
 
   const navItems = isAdmin
-    ? [...baseNavItems, { id: 'users', label: 'Usuarios', icon: icons.users }]
+    ? [...baseNavItems, { id: 'finanzas', label: 'Finanzas', icon: icons.finanzas }, { id: 'users', label: 'Usuarios', icon: icons.users }]
     : baseNavItems;
 
   const handlePatientsHeader = () => {
@@ -205,7 +204,7 @@ function MainContent() {
       case 'metrics':
         return <Metrics />;
       case 'finanzas':
-        return <Finance />;
+        return isAdmin ? <Finance /> : <Dashboard onNavigate={handleTabChange} onCreateAppointment={() => handleCreateAppointment()} onViewPatient={handleViewPatient} />;
       case 'users':
         return <Users />;
       default:
