@@ -59,7 +59,10 @@ export default function Dashboard({ onNavigate, onCreateAppointment, onManageSes
     }).length,
     ingresos: appointments.filter(a => {
       const appointmentDate = new Date(a.date);
-      return appointmentDate.getFullYear() === date.getFullYear() && appointmentDate.getMonth() === date.getMonth() && !['cancelled', 'no-show'].includes(a.status);
+      return appointmentDate.getFullYear() === date.getFullYear()
+        && appointmentDate.getMonth() === date.getMonth()
+        && !['cancelled', 'no-show'].includes(a.status)
+        && Boolean(a.amount && a.amount > 0);
     }).reduce((sum, appointment) => sum + (appointment.amount || 0), 0),
   })), [appointments, patients]);
   const appointmentTypes = useMemo(() => appointments.reduce<Record<string, number>>((result, appointment) => {

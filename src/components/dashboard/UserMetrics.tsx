@@ -9,7 +9,7 @@ import {
 } from 'recharts';
 import { formatCurrency } from '../../utils/format';
 import { formatLastActivity, formatTimestamp } from '../../utils/activity';
-import { isAppointmentPaid, needsPayment } from '../../utils/appointmentWorkflow';
+import { isAppointmentPaid, needsPayment, paymentDateOf } from '../../utils/appointmentWorkflow';
 
 const COLORS = ['#2563eb', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
@@ -91,11 +91,17 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
     const date = parseCalendarDate(record.date);
     return date >= selectedRange.start && date <= selectedRange.end;
   }), [progressRecords, selectedRange]);
+  const paidAppointmentsInRange = useMemo(() => !selectedRange ? [] : appointments
+    .filter(appointment => {
+      const paidAt = paymentDateOf(appointment);
+      return isAppointmentPaid(appointment) && paidAt >= selectedRange.start && paidAt <= selectedRange.end;
+    })
+    .sort((a, b) => paymentDateOf(b).getTime() - paymentDateOf(a).getTime()), [appointments, selectedRange]);
+  const appointmentsWithRecordedAmount = useMemo(() => filteredAppointments.filter(appointment => parseAmount(appointment.amount) > 0), [filteredAppointments]);
 
   const metrics = useMemo(() => {
     const completed = filteredAppointments.filter(a => a.status === 'completed');
-    const paidAppointments = filteredAppointments.filter(isAppointmentPaid);
-    const totalSales = paidAppointments.reduce((sum, a) => sum + parseAmount(a.amount), 0);
+    const totalSales = appointmentsWithRecordedAmount.reduce((sum, a) => sum + parseAmount(a.amount), 0);
     const totalAppointments = filteredAppointments.length;
     const uniquePatients = new Set(filteredAppointments.map(a => a.patientId)).size;
     const documentedSessions = completed.filter(a => a.sessionNote).length;
@@ -103,13 +109,13 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
     const attendedOrMissed = completed.length + noShows;
     const attendanceRate = attendedOrMissed ? Math.round((completed.length / attendedOrMissed) * 100) : null;
     const pendingSessions = appointmentsInRange.filter(a => ['scheduled', 'confirmed'].includes(a.status)).length;
-    const averageTicket = paidAppointments.length ? totalSales / paidAppointments.length : 0;
+    const averageTicket = appointmentsWithRecordedAmount.length ? totalSales / appointmentsWithRecordedAmount.length : 0;
     const notesWithPain = completed.filter(a => Number.isFinite(a.sessionNote?.painBefore) && Number.isFinite(a.sessionNote?.painAfter));
     const averagePainChange = notesWithPain.length
       ? Math.round((notesWithPain.reduce((sum, a) => sum + ((a.sessionNote?.painAfter ?? 0) - (a.sessionNote?.painBefore ?? 0)), 0) / notesWithPain.length) * 10) / 10
       : null;
     return { totalSales, totalAppointments, uniquePatients, completedSessions: completed.length, documentedSessions, attendanceRate, averagePainChange, noShows, pendingSessions, averageTicket };
-  }, [filteredAppointments, appointmentsInRange]);
+  }, [filteredAppointments, appointmentsInRange, appointmentsWithRecordedAmount]);
 
   const clinicalMetrics = useMemo(() => {
     const relevant = filteredProgress;
@@ -119,15 +125,23 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
 
   const amountBreakdown = useMemo(() => {
     const completedAppointments = filteredAppointments.filter(a => a.status === 'completed');
-    const withAmount = completedAppointments.filter(isAppointmentPaid);
+    const paidCompletedAppointments = completedAppointments.filter(isAppointmentPaid);
     const withoutAmount = completedAppointments.filter(needsPayment);
-    const totalCharged = withAmount.reduce((sum, a) => sum + parseAmount(a.amount), 0);
-    return { completedCount: completedAppointments.length, withAmountCount: withAmount.length, withoutAmountCount: withoutAmount.length, totalCharged, appointmentsWithoutAmount: withoutAmount.map(a => ({ id: a.id, patientName: a.patientName, date: a.date, type: a.type })) };
-  }, [filteredAppointments]);
+    const totalCharged = paidAppointmentsInRange.reduce((sum, a) => sum + parseAmount(a.amount), 0);
+    return {
+      completedCount: completedAppointments.length,
+      paidCompletedCount: paidCompletedAppointments.length,
+      withAmountCount: paidAppointmentsInRange.length,
+      withoutAmountCount: withoutAmount.length,
+      totalCharged,
+      paidAppointments: paidAppointmentsInRange,
+      appointmentsWithoutAmount: withoutAmount.map(a => ({ id: a.id, patientName: a.patientName, date: a.date, type: a.type })),
+    };
+  }, [filteredAppointments, paidAppointmentsInRange]);
 
   const salesByPeriod = useMemo(() => {
     const grouped: Record<string, number> = {};
-    filteredAppointments.filter(isAppointmentPaid).forEach(a => {
+    appointmentsWithRecordedAmount.forEach(a => {
       const date = parseCalendarDate(a.date);
       let key: string;
       switch (timeRange) {
@@ -146,7 +160,7 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
       grouped[key] = (grouped[key] || 0) + parseAmount(a.amount);
     });
     return Object.entries(grouped).map(([name, value]) => ({ name, value: Math.round(value) }));
-  }, [filteredAppointments, timeRange]);
+  }, [appointmentsWithRecordedAmount, timeRange]);
 
   const appointmentsByPeriod = useMemo(() => {
     const grouped: Record<string, number> = {};
@@ -261,7 +275,7 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
           <div className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 rounded-xl border border-primary/20">
             <p className="text-sm text-gray-500 font-medium">Ingresos registrados</p>
             <p className="text-2xl font-bold text-primary-dark mt-1">{formatCurrency(metrics.totalSales)}</p>
-            <p className="mt-1 text-xs text-gray-500">Montos capturados en citas vigentes</p>
+            <p className="mt-1 text-xs text-gray-500">Montos capturados en citas vigentes del período</p>
           </div>
           <div className="p-4 bg-gradient-to-br from-secondary/10 to-secondary/5 rounded-xl border border-secondary/20">
             <p className="text-sm text-gray-500 font-medium">Sesiones realizadas</p>
@@ -387,10 +401,16 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
               </div>
               <div className="p-4 bg-gradient-to-br from-amber-500/10 to-amber-500/5 rounded-xl border border-amber-500/20">
                 <p className="text-sm text-gray-500 font-medium">% Cobrado</p>
-                <p className="text-2xl font-bold text-amber-700 mt-1">{amountBreakdown.completedCount ? Math.round((amountBreakdown.withAmountCount / amountBreakdown.completedCount) * 100) : 0}%</p>
+                <p className="text-2xl font-bold text-amber-700 mt-1">{amountBreakdown.completedCount ? Math.round((amountBreakdown.paidCompletedCount / amountBreakdown.completedCount) * 100) : 0}%</p>
                 <p className="mt-1 text-xs text-gray-500">De sesiones completadas</p>
               </div>
             </div>
+            {amountBreakdown.paidAppointments.length > 0 && (
+              <div className="mb-4 overflow-hidden rounded-xl border border-emerald-200 bg-white">
+                <div className="border-b border-emerald-100 bg-emerald-50 px-4 py-3"><p className="text-sm font-semibold text-emerald-800">Pagos contabilizados ({amountBreakdown.paidAppointments.length})</p></div>
+                <div className="overflow-x-auto"><table className="w-full text-sm"><thead className="bg-slate-50 text-slate-500"><tr><th className="px-4 py-3 text-left font-medium">Paciente</th><th className="px-4 py-3 text-left font-medium">Fecha de pago</th><th className="px-4 py-3 text-left font-medium">Método</th><th className="px-4 py-3 text-right font-medium">Monto</th></tr></thead><tbody className="divide-y divide-slate-100">{amountBreakdown.paidAppointments.slice(0, 20).map(appointment => <tr key={appointment.id}><td className="px-4 py-3 font-medium text-slate-900">{appointment.patientName}</td><td className="px-4 py-3 text-slate-500">{paymentDateOf(appointment).toLocaleDateString('es-MX')}</td><td className="px-4 py-3 text-slate-500">{appointment.paymentMethod === 'cash' ? 'Efectivo' : appointment.paymentMethod === 'card' ? 'Tarjeta' : appointment.paymentMethod === 'transfer' ? 'Transferencia' : 'Sin especificar'}</td><td className="px-4 py-3 text-right font-bold text-emerald-700">{formatCurrency(parseAmount(appointment.amount))}</td></tr>)}</tbody></table></div>
+              </div>
+            )}
             {amountBreakdown.appointmentsWithoutAmount.length > 0 && (
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">

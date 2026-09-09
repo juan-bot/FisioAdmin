@@ -2,8 +2,7 @@ import type { Appointment } from '../types';
 
 export function paymentStatusOf(appointment: Appointment): Appointment['paymentStatus'] | undefined {
   if (appointment.paymentStatus) return appointment.paymentStatus;
-  if (appointment.status !== 'completed') return undefined;
-  return appointment.amount && appointment.amount > 0 ? 'paid' : 'pending';
+  return appointment.status === 'completed' ? 'pending' : undefined;
 }
 
 export function followUpStatusOf(appointment: Appointment): Appointment['followUpStatus'] | undefined {
@@ -12,7 +11,13 @@ export function followUpStatusOf(appointment: Appointment): Appointment['followU
 }
 
 export function isAppointmentPaid(appointment: Appointment): boolean {
-  return paymentStatusOf(appointment) === 'paid' && Boolean(appointment.amount && appointment.amount > 0);
+  return appointment.status === 'completed'
+    && appointment.paymentStatus === 'paid'
+    && Boolean(appointment.amount && appointment.amount > 0);
+}
+
+export function paymentDateOf(appointment: Appointment): Date {
+  return new Date(appointment.paidAt || `${appointment.date}T12:00:00`);
 }
 
 export function needsPayment(appointment: Appointment): boolean {
