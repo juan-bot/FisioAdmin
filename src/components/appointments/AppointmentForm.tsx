@@ -120,14 +120,14 @@ export function AppointmentForm({ appointment, onClose, initialPatientId = '' }:
             <select name="status" className={inputClass} value={form.status} onChange={handleChange}>
               <option value="scheduled">Programada</option>
               <option value="confirmed">Confirmada</option>
-              <option value="completed">Completada</option>
+              {appointment?.status === 'completed' && <option value="completed">Completada</option>}
               <option value="cancelled">Cancelada</option>
               <option value="no-show">No asistió</option>
             </select>
           </div>
 
           <div>
-            <label className={labelClass}>Monto cobrado (MXN)</label>
+            <label className={labelClass}>{appointment?.status === 'completed' ? 'Monto registrado' : 'Monto previsto'} (MXN)</label>
             <input name="amount" type="number" min="0" step="0.01" className={inputClass} value={form.amount} onChange={handleChange} placeholder="0.00" />
           </div>
 

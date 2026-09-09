@@ -4,6 +4,7 @@ import { useApp } from '../../context/AppContext';
 import { useActivityTracking } from '../../utils/activity';
 import { Card, CardBody, CardHeader } from '../ui/Card';
 import { formatCurrency, formatTime, getAppointmentTypeLabel, getStatusLabel } from '../../utils/format';
+import { needsFollowUp, needsPayment } from '../../utils/appointmentWorkflow';
 
 const MONTHS: Date[] = (() => {
   const values: Date[] = [];
@@ -44,7 +45,7 @@ function StatCard({ title, value, subtitle, icon, tone }: { title: string; value
 
 const tooltipStyle = { color: 'var(--text-main)', background: 'var(--surface-elevated)', border: '1px solid var(--border-subtle)', borderRadius: '12px', boxShadow: '0 12px 28px rgba(0, 0, 0, .18)', fontSize: '12px' };
 
-export default function Dashboard({ onNavigate, onCreateAppointment, onViewPatient }: { onNavigate: (tab: string) => void; onCreateAppointment: () => void; onViewPatient: (id: string) => void }) {
+export default function Dashboard({ onNavigate, onCreateAppointment, onManageSession, onViewPatient }: { onNavigate: (tab: string) => void; onCreateAppointment: (patientId?: string) => void; onManageSession: (appointmentId: string) => void; onViewPatient: (id: string) => void }) {
   const { appointments, patients, stats, currentTherapist } = useApp();
   const { trackClick } = useActivityTracking({ trackLifecycle: false });
   const todayISO = useMemo(() => new Date().toISOString().split('T')[0], []);
@@ -67,6 +68,15 @@ export default function Dashboard({ onNavigate, onCreateAppointment, onViewPatie
   }, {}), [appointments]);
   const typeTotal = Object.values(appointmentTypes).reduce((sum, value) => sum + value, 0);
   const nextAppointment = todayAppointments.find(a => a.status !== 'completed' && a.status !== 'cancelled');
+  const pendingWork = useMemo(() => {
+    const completed = appointments.filter(appointment => appointment.status === 'completed');
+    const unpaid = completed.filter(needsPayment);
+    const undocumented = completed.filter(appointment => !appointment.sessionNote);
+    const followUps = completed.filter(appointment => needsFollowUp(appointment, todayISO));
+    const patientsWithoutAppointment = patients.filter(patient => patient.status === 'active' && !appointments.some(appointment => appointment.patientId === patient.id && appointment.date >= todayISO && ['scheduled', 'confirmed'].includes(appointment.status)));
+    return { unpaid, undocumented, followUps, patientsWithoutAppointment };
+  }, [appointments, patients, todayISO]);
+  const pendingCount = pendingWork.unpaid.length + pendingWork.undocumented.length + pendingWork.followUps.length + pendingWork.patientsWithoutAppointment.length;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -84,6 +94,22 @@ export default function Dashboard({ onNavigate, onCreateAppointment, onViewPatie
       </section>
 
       {stats.totalPatients === 0 && <section className="rounded-3xl border border-primary/20 bg-primary-lighter/60 p-5 dark:bg-slate-900 sm:p-6"><div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-[.16em] text-primary">Primeros pasos</p><h2 className="mt-1 text-lg font-extrabold text-slate-900 dark:text-white">Deja tu clínica lista en menos de 5 minutos</h2><p className="mt-1 text-sm text-slate-600 dark:text-slate-300">1. Registra un paciente · 2. Completa su valoración · 3. Agenda la primera cita.</p></div><button onClick={() => onNavigate('patients')} className="btn btn-primary shrink-0">Registrar paciente</button></div></section>}
+
+      <Card className={pendingCount > 0 ? 'border-amber-200 dark:border-amber-900' : ''}>
+        <CardHeader className="flex flex-wrap items-center justify-between gap-3">
+          <div><div className="flex items-center gap-2"><h2 className="section-title">Pendientes de hoy</h2>{pendingCount > 0 && <span className="badge badge-danger">{pendingCount}</span>}</div><p className="mt-1 text-xs text-slate-400">Cobros y seguimientos que no deben quedar olvidados.</p></div>
+          <button onClick={() => onNavigate('appointments')} className="text-xs font-bold text-primary hover:text-primary-hover">Revisar citas</button>
+        </CardHeader>
+        <CardBody>
+          {pendingCount === 0 ? <div className="rounded-2xl bg-emerald-50 px-4 py-5 text-center dark:bg-emerald-950/20"><p className="text-sm font-bold text-emerald-800 dark:text-emerald-200">Todo está al día</p><p className="mt-1 text-xs text-emerald-600 dark:text-emerald-300">No hay cobros ni seguimientos vencidos.</p></div> : <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <button onClick={() => onNavigate('appointments')} className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-sm dark:border-rose-900 dark:bg-rose-950/20"><p className="text-2xl font-extrabold text-rose-700 dark:text-rose-300">{pendingWork.unpaid.length}</p><p className="mt-1 text-sm font-bold text-slate-800 dark:text-white">Cobros pendientes</p><p className="mt-1 text-xs text-slate-500">Sesiones cerradas sin pago confirmado</p></button>
+            <button onClick={() => onNavigate('appointments')} className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-sm dark:border-amber-900 dark:bg-amber-950/20"><p className="text-2xl font-extrabold text-amber-700 dark:text-amber-300">{pendingWork.followUps.length}</p><p className="mt-1 text-sm font-bold text-slate-800 dark:text-white">Seguimientos</p><p className="mt-1 text-xs text-slate-500">Contactos programados para hoy o vencidos</p></button>
+            <button onClick={() => onNavigate('appointments')} className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-sm dark:border-sky-900 dark:bg-sky-950/20"><p className="text-2xl font-extrabold text-sky-700 dark:text-sky-300">{pendingWork.undocumented.length}</p><p className="mt-1 text-sm font-bold text-slate-800 dark:text-white">Notas clínicas</p><p className="mt-1 text-xs text-slate-500">Sesiones completadas sin nota</p></button>
+            <button onClick={() => onNavigate('patients')} className="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-sm dark:border-violet-900 dark:bg-violet-950/20"><p className="text-2xl font-extrabold text-violet-700 dark:text-violet-300">{pendingWork.patientsWithoutAppointment.length}</p><p className="mt-1 text-sm font-bold text-slate-800 dark:text-white">Sin próxima cita</p><p className="mt-1 text-xs text-slate-500">Pacientes activos sin seguimiento agendado</p></button>
+          </div>}
+          {pendingWork.unpaid.length > 0 && <div className="mt-4 divide-y divide-slate-100 rounded-2xl border border-slate-200 px-4 dark:divide-slate-800 dark:border-slate-700">{pendingWork.unpaid.slice(0, 4).map(appointment => <div key={appointment.id} className="flex flex-wrap items-center gap-3 py-3"><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-slate-900 dark:text-white">Cobrar a {appointment.patientName}</p><p className="text-xs text-slate-400">{new Date(appointment.date).toLocaleDateString('es-MX')} · {appointment.amount ? formatCurrency(appointment.amount) : 'Monto sin registrar'}</p></div><button onClick={() => onManageSession(appointment.id)} className="rounded-lg bg-rose-100 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-200">Registrar cobro</button></div>)}</div>}
+        </CardBody>
+      </Card>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard title="Pacientes totales" value={stats.totalPatients} subtitle={`${stats.activePatients} activos actualmente`} icon="patients" tone="bg-primary-light text-primary-dark" />

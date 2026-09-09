@@ -9,6 +9,7 @@ import {
 } from 'recharts';
 import { formatCurrency } from '../../utils/format';
 import { formatLastActivity, formatTimestamp } from '../../utils/activity';
+import { isAppointmentPaid, needsPayment } from '../../utils/appointmentWorkflow';
 
 const COLORS = ['#2563eb', '#0ea5e9', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
@@ -93,8 +94,8 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
 
   const metrics = useMemo(() => {
     const completed = filteredAppointments.filter(a => a.status === 'completed');
-    // El sistema registra el cobro como monto en la cita; aún no existe un estado de pago separado.
-    const totalSales = filteredAppointments.reduce((sum, a) => sum + parseAmount(a.amount), 0);
+    const paidAppointments = filteredAppointments.filter(isAppointmentPaid);
+    const totalSales = paidAppointments.reduce((sum, a) => sum + parseAmount(a.amount), 0);
     const totalAppointments = filteredAppointments.length;
     const uniquePatients = new Set(filteredAppointments.map(a => a.patientId)).size;
     const documentedSessions = completed.filter(a => a.sessionNote).length;
@@ -102,8 +103,7 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
     const attendedOrMissed = completed.length + noShows;
     const attendanceRate = attendedOrMissed ? Math.round((completed.length / attendedOrMissed) * 100) : null;
     const pendingSessions = appointmentsInRange.filter(a => ['scheduled', 'confirmed'].includes(a.status)).length;
-    const appointmentsWithAmount = filteredAppointments.filter(a => parseAmount(a.amount) > 0);
-    const averageTicket = appointmentsWithAmount.length ? totalSales / appointmentsWithAmount.length : 0;
+    const averageTicket = paidAppointments.length ? totalSales / paidAppointments.length : 0;
     const notesWithPain = completed.filter(a => Number.isFinite(a.sessionNote?.painBefore) && Number.isFinite(a.sessionNote?.painAfter));
     const averagePainChange = notesWithPain.length
       ? Math.round((notesWithPain.reduce((sum, a) => sum + ((a.sessionNote?.painAfter ?? 0) - (a.sessionNote?.painBefore ?? 0)), 0) / notesWithPain.length) * 10) / 10
@@ -119,15 +119,15 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
 
   const amountBreakdown = useMemo(() => {
     const completedAppointments = filteredAppointments.filter(a => a.status === 'completed');
-    const withAmount = completedAppointments.filter(a => parseAmount(a.amount) > 0);
-    const withoutAmount = completedAppointments.filter(a => parseAmount(a.amount) === 0);
+    const withAmount = completedAppointments.filter(isAppointmentPaid);
+    const withoutAmount = completedAppointments.filter(needsPayment);
     const totalCharged = withAmount.reduce((sum, a) => sum + parseAmount(a.amount), 0);
     return { completedCount: completedAppointments.length, withAmountCount: withAmount.length, withoutAmountCount: withoutAmount.length, totalCharged, appointmentsWithoutAmount: withoutAmount.map(a => ({ id: a.id, patientName: a.patientName, date: a.date, type: a.type })) };
   }, [filteredAppointments]);
 
   const salesByPeriod = useMemo(() => {
     const grouped: Record<string, number> = {};
-    filteredAppointments.forEach(a => {
+    filteredAppointments.filter(isAppointmentPaid).forEach(a => {
       const date = parseCalendarDate(a.date);
       let key: string;
       switch (timeRange) {
@@ -394,7 +394,7 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
             {amountBreakdown.appointmentsWithoutAmount.length > 0 && (
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
                 <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                  <p className="text-sm font-semibold text-gray-700">Citas sin monto registrado ({amountBreakdown.appointmentsWithoutAmount.length})</p>
+                  <p className="text-sm font-semibold text-gray-700">Sesiones con cobro pendiente ({amountBreakdown.appointmentsWithoutAmount.length})</p>
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">

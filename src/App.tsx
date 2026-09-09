@@ -85,6 +85,7 @@ function MainContent() {
   const [activeTab, setActiveTab] = useState(initialRoute[0] === 'patients' && initialRoute[1] ? 'patient-detail' : initialRoute[0] || 'dashboard');
   const [viewingPatientId, setViewingPatientId] = useState<string | null>(initialRoute[0] === 'patients' ? initialRoute[1] || null : null);
   const [appointmentRequest, setAppointmentRequest] = useState<{ patientId?: string } | null>(null);
+  const [sessionRequest, setSessionRequest] = useState<string | null>(null);
   const [progressRequest, setProgressRequest] = useState<{ patientId?: string } | null>(null);
   const [prescriptionRequest, setPrescriptionRequest] = useState<{ patientId?: string } | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -169,6 +170,13 @@ function MainContent() {
     setRoute('appointments');
   };
 
+  const handleManageSession = (appointmentId: string) => {
+    setSessionRequest(appointmentId);
+    setActiveTab('appointments');
+    setViewingPatientId(null);
+    setRoute('appointments');
+  };
+
   const handleCreateProgress = (patientId?: string) => {
     setProgressRequest({ patientId });
     setActiveTab('progress');
@@ -190,11 +198,11 @@ function MainContent() {
 
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard onNavigate={handleTabChange} onCreateAppointment={() => handleCreateAppointment()} onViewPatient={handleViewPatient} />;
+        return <Dashboard onNavigate={handleTabChange} onCreateAppointment={handleCreateAppointment} onManageSession={handleManageSession} onViewPatient={handleViewPatient} />;
       case 'patients':
         return <Patients onViewPatient={handleViewPatient} />;
       case 'appointments':
-        return <Appointments initialCreate={!!appointmentRequest} initialPatientId={appointmentRequest?.patientId} onInitialCreateHandled={() => setAppointmentRequest(null)} />;
+        return <Appointments initialCreate={!!appointmentRequest} initialPatientId={appointmentRequest?.patientId} onInitialCreateHandled={() => setAppointmentRequest(null)} initialSessionAppointmentId={sessionRequest || undefined} onInitialSessionHandled={() => setSessionRequest(null)} />;
       case 'calendar':
         return <Calendar />;
       case 'prescriptions':
@@ -204,11 +212,11 @@ function MainContent() {
       case 'metrics':
         return <Metrics />;
       case 'finanzas':
-        return isAdmin ? <Finance /> : <Dashboard onNavigate={handleTabChange} onCreateAppointment={() => handleCreateAppointment()} onViewPatient={handleViewPatient} />;
+        return isAdmin ? <Finance /> : <Dashboard onNavigate={handleTabChange} onCreateAppointment={handleCreateAppointment} onManageSession={handleManageSession} onViewPatient={handleViewPatient} />;
       case 'users':
         return <Users />;
       default:
-        return <Dashboard onNavigate={handleTabChange} onCreateAppointment={() => handleCreateAppointment()} onViewPatient={handleViewPatient} />;
+        return <Dashboard onNavigate={handleTabChange} onCreateAppointment={handleCreateAppointment} onManageSession={handleManageSession} onViewPatient={handleViewPatient} />;
     }
   };
 

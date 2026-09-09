@@ -125,7 +125,13 @@ export interface Appointment {
   therapistName: string;
   notes: string;
   sessionNote?: SessionNote;
-  amount?: number;
+  amount?: number | null;
+  paymentStatus?: 'pending' | 'paid' | 'waived';
+  paymentMethod?: 'cash' | 'card' | 'transfer';
+  paidAt?: string;
+  followUpStatus?: 'pending' | 'scheduled' | 'completed' | 'not_required';
+  followUpDate?: string;
+  followUpNote?: string;
   createdAt: string;
   updatedAt: string;
 }

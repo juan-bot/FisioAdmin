@@ -4,6 +4,7 @@ import { Patient, Appointment, Prescription, ProgressRecord, DashboardStats } fr
 import { useAuth } from './AuthContext';
 import { notify } from '../utils/notify';
 import { repository } from '../data/repository';
+import { isAppointmentPaid } from '../utils/appointmentWorkflow';
 
 export const CURRENT_THERAPIST = { id: 't1', name: 'Belén Peña' };
 
@@ -164,12 +165,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       return date >= startOfWeek && date <= endOfWeek;
     }).length;
     const pendingPrescriptions = prescriptions.filter(p => p.status === 'active').length;
-    const chargedAppointments = appointments.filter(a => {
+    const appointmentsThisMonth = appointments.filter(a => {
       const d = new Date(a.date);
-      return d >= monthStart && d <= monthEnd && a.status !== 'cancelled' && a.status !== 'no-show';
+      return d >= monthStart && d <= monthEnd;
     });
+    const chargedAppointments = appointmentsThisMonth.filter(isAppointmentPaid);
     const revenueThisMonth = chargedAppointments.reduce((sum, a) => sum + (a.amount || 0), 0);
-    const completedSessionsThisMonth = chargedAppointments.length;
+    const completedSessionsThisMonth = appointmentsThisMonth.filter(a => a.status === 'completed').length;
     const averageProgressScore = progressRecords.length > 0
       ? Math.round(
           progressRecords.reduce((acc, r) => acc + (r.mobilityScore + r.strengthScore + r.functionalScore) / 3, 0) / progressRecords.length

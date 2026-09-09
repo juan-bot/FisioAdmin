@@ -7,8 +7,9 @@ import { AppointmentForm } from './AppointmentForm';
 import { SessionNoteForm } from './SessionNoteForm';
 import { getStatusLabel, getAppointmentTypeLabel, formatTime, formatCurrency } from '../../utils/format';
 import { Appointment } from '../../types';
+import { followUpStatusOf, paymentStatusOf } from '../../utils/appointmentWorkflow';
 
-export default function Appointments({ initialCreate = false, initialPatientId = '', onInitialCreateHandled }: { initialCreate?: boolean; initialPatientId?: string; onInitialCreateHandled?: () => void }) {
+export default function Appointments({ initialCreate = false, initialPatientId = '', onInitialCreateHandled, initialSessionAppointmentId, onInitialSessionHandled }: { initialCreate?: boolean; initialPatientId?: string; onInitialCreateHandled?: () => void; initialSessionAppointmentId?: string; onInitialSessionHandled?: () => void }) {
   const { appointments, updateAppointment, deleteAppointment } = useApp();
   const [showForm, setShowForm] = useState(initialCreate);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
@@ -17,6 +18,11 @@ export default function Appointments({ initialCreate = false, initialPatientId =
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterType, setFilterType] = useState('all');
   const [search, setSearch] = useState('');
+  const activeSessionAppointment = sessionAppointment || (initialSessionAppointmentId ? appointments.find(item => item.id === initialSessionAppointmentId) || null : null);
+  const closeSession = () => {
+    setSessionAppointment(null);
+    if (initialSessionAppointmentId) onInitialSessionHandled?.();
+  };
 
   const filteredAppointments = useMemo(() =>
     appointments
@@ -42,6 +48,10 @@ export default function Appointments({ initialCreate = false, initialPatientId =
   }, []);
 
   const handleStatusChange = useCallback((appointment: Appointment, newStatus: Appointment['status']) => {
+    if (newStatus === 'completed') {
+      setSessionAppointment(appointment);
+      return;
+    }
     updateAppointment(appointment.id, { status: newStatus });
   }, [updateAppointment]);
 
@@ -125,6 +135,7 @@ export default function Appointments({ initialCreate = false, initialPatientId =
                     <button onClick={() => handleDeleteConfirm(a)} className="rounded-lg p-2 text-slate-400 hover:bg-danger-light hover:text-danger" aria-label={`Eliminar cita de ${a.patientName}`}><svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0 1 16.138 21H7.862a2 2 0 0 1-1.995-1.858L5 7m5 4v6m4-6v6M4 7h16" /></svg></button>
                   </div>
                 </div>
+                {a.status === 'completed' && <div className="mt-3 flex flex-wrap gap-2"><span className={`badge ${paymentStatusOf(a) === 'paid' || paymentStatusOf(a) === 'waived' ? 'badge-success' : 'badge-danger'}`}>{paymentStatusOf(a) === 'paid' ? 'Cobrado' : paymentStatusOf(a) === 'waived' ? 'Cortesía' : 'Cobro pendiente'}</span><span className={`badge ${['scheduled', 'completed', 'not_required'].includes(followUpStatusOf(a) || '') ? 'badge-success' : 'badge-warning'}`}>{followUpStatusOf(a) === 'scheduled' ? 'Próxima cita agendada' : followUpStatusOf(a) === 'completed' ? 'Seguimiento realizado' : followUpStatusOf(a) === 'not_required' ? 'Sin seguimiento' : 'Seguimiento pendiente'}</span></div>}
               </article>
             ))}
             {filteredAppointments.length === 0 && <p className="py-8 text-center text-sm text-slate-400">No se encontraron citas.</p>}
@@ -140,6 +151,7 @@ export default function Appointments({ initialCreate = false, initialPatientId =
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Terapeuta</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monto</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cierre</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                 </tr>
               </thead>
@@ -183,6 +195,9 @@ export default function Appointments({ initialCreate = false, initialPatientId =
                       <p className="text-sm font-medium text-gray-900">{a.amount ? formatCurrency(a.amount) : '—'}</p>
                     </td>
                     <td className="px-4 py-3">
+                      {a.status === 'completed' ? <div className="flex min-w-[150px] flex-col items-start gap-1"><span className={`badge ${paymentStatusOf(a) === 'paid' || paymentStatusOf(a) === 'waived' ? 'badge-success' : 'badge-danger'}`}>{paymentStatusOf(a) === 'paid' ? 'Cobrado' : paymentStatusOf(a) === 'waived' ? 'Cortesía' : 'Cobro pendiente'}</span><span className={`badge ${['scheduled', 'completed', 'not_required'].includes(followUpStatusOf(a) || '') ? 'badge-success' : 'badge-warning'}`}>{followUpStatusOf(a) === 'scheduled' ? 'Cita agendada' : followUpStatusOf(a) === 'completed' ? 'Seguimiento hecho' : followUpStatusOf(a) === 'not_required' ? 'No requiere' : 'Seguimiento pendiente'}</span></div> : <span className="text-xs text-slate-400">—</span>}
+                    </td>
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <button onClick={() => setSessionAppointment(a)} className="rounded-lg px-2 py-1.5 text-xs font-bold text-primary hover:bg-primary-light" title={a.sessionNote ? 'Ver o editar nota de sesión' : 'Registrar nota de sesión'}>{a.sessionNote ? 'Ver sesión' : 'Sesión'}</button>
                         <button
@@ -209,7 +224,7 @@ export default function Appointments({ initialCreate = false, initialPatientId =
                 ))}
                 {filteredAppointments.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-gray-500">No se encontraron citas</td>
+                    <td colSpan={9} className="px-4 py-8 text-center text-gray-500">No se encontraron citas</td>
                   </tr>
                 )}
               </tbody>
@@ -225,7 +240,7 @@ export default function Appointments({ initialCreate = false, initialPatientId =
           onClose={() => { setShowForm(false); setEditingAppointment(null); onInitialCreateHandled?.(); }}
         />
       )}
-      {sessionAppointment && <SessionNoteForm appointment={sessionAppointment} onClose={() => setSessionAppointment(null)} />}
+      {activeSessionAppointment && <SessionNoteForm appointment={activeSessionAppointment} onClose={closeSession} />}
 
       <Modal isOpen={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Eliminar Cita" size="sm">
         <p className="text-gray-700">

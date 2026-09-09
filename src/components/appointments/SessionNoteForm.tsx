@@ -18,6 +18,15 @@ export function SessionNoteForm({ appointment, onClose }: { appointment: Appoint
     alerts: appointment.sessionNote?.alerts || '',
     completedAt: appointment.sessionNote?.completedAt || new Date().toISOString(),
   }));
+  const [closure, setClosure] = useState(() => ({
+    amount: appointment.amount != null ? String(appointment.amount) : '',
+    paymentStatus: appointment.paymentStatus || '' as Appointment['paymentStatus'] | '',
+    paymentMethod: appointment.paymentMethod || '' as Appointment['paymentMethod'] | '',
+    followUpStatus: appointment.followUpStatus || '' as Appointment['followUpStatus'] | '',
+    followUpDate: appointment.followUpDate || '',
+    followUpNote: appointment.followUpNote || '',
+  }));
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const inputClass = 'input';
   const labelClass = 'mb-1 block text-sm font-semibold text-slate-700 dark:text-slate-200';
@@ -31,8 +40,45 @@ export function SessionNoteForm({ appointment, onClose }: { appointment: Appoint
       setError('Registra cómo llegó, qué se hizo y cómo respondió el paciente.');
       return;
     }
-    await updateAppointment(appointment.id, { sessionNote: note, status: 'completed' });
-    onClose();
+    if (!closure.paymentStatus) {
+      setError('Confirma si la consulta fue cobrada, quedó pendiente o fue cortesía.');
+      return;
+    }
+    const amount = closure.amount === '' ? null : Number(closure.amount);
+    if (closure.paymentStatus === 'paid' && (!amount || amount <= 0 || !closure.paymentMethod)) {
+      setError('Para marcar como cobrada, registra el monto y el método de pago.');
+      return;
+    }
+    if (!closure.followUpStatus) {
+      setError('Indica qué seguimiento requiere el paciente.');
+      return;
+    }
+    if (closure.followUpStatus === 'pending' && !closure.followUpDate) {
+      setError('Selecciona una fecha para recordar el seguimiento.');
+      return;
+    }
+    setSaving(true);
+    try {
+      const updates: Partial<Appointment> = {
+        sessionNote: note,
+        status: 'completed',
+        amount,
+        paymentStatus: closure.paymentStatus,
+        followUpStatus: closure.followUpStatus,
+        followUpNote: closure.followUpNote.trim(),
+      };
+      if (closure.paymentStatus === 'paid') {
+        updates.paymentMethod = closure.paymentMethod || undefined;
+        updates.paidAt = appointment.paidAt || new Date().toISOString();
+      }
+      if (closure.followUpStatus === 'pending') updates.followUpDate = closure.followUpDate;
+      await updateAppointment(appointment.id, updates);
+      onClose();
+    } catch {
+      setError('No fue posible guardar el cierre de la sesión. Inténtalo nuevamente.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return <Modal isOpen onClose={onClose} title={`Nota de sesión · ${appointment.patientName}`} size="lg">
@@ -52,7 +98,23 @@ export function SessionNoteForm({ appointment, onClose }: { appointment: Appoint
         <div><label className={labelClass}>Plan para la siguiente sesión</label><textarea className={inputClass} rows={3} value={note.nextSessionPlan} onChange={e => update('nextSessionPlan', e.target.value)} placeholder="Qué se revisará o progresará." /></div>
       </div>
       <div><label className={labelClass}>Alertas o notas importantes</label><input className={inputClass} value={note.alerts} onChange={e => update('alerts', e.target.value)} placeholder="Contraindicaciones, molestias, seguimiento médico…" /></div>
-      <div className="flex justify-end gap-3 border-t border-slate-100 pt-4 dark:border-slate-800"><Button variant="outline" onClick={onClose}>Cancelar</Button><Button type="submit">Guardar nota de sesión</Button></div>
+      <section className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 dark:border-emerald-900 dark:bg-emerald-950/20">
+        <div className="mb-4"><p className="text-sm font-extrabold text-emerald-900 dark:text-emerald-200">1. Confirmar cobro *</p><p className="mt-1 text-xs text-emerald-700 dark:text-emerald-300">La sesión no se cerrará sin declarar el estado del cobro.</p></div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <div><label className={labelClass}>Estado</label><select className={inputClass} value={closure.paymentStatus} onChange={e => setClosure(current => ({ ...current, paymentStatus: e.target.value as Appointment['paymentStatus'] | '' }))}><option value="">Seleccionar…</option><option value="paid">Cobrado</option><option value="pending">Pendiente</option><option value="waived">Cortesía</option></select></div>
+          <div><label className={labelClass}>Monto (MXN)</label><input type="number" min="0" step="0.01" className={inputClass} value={closure.amount} onChange={e => setClosure(current => ({ ...current, amount: e.target.value }))} placeholder="0.00" /></div>
+          <div><label className={labelClass}>Método</label><select className={inputClass} disabled={closure.paymentStatus !== 'paid'} value={closure.paymentMethod} onChange={e => setClosure(current => ({ ...current, paymentMethod: e.target.value as Appointment['paymentMethod'] | '' }))}><option value="">Seleccionar…</option><option value="cash">Efectivo</option><option value="card">Tarjeta</option><option value="transfer">Transferencia</option></select></div>
+        </div>
+      </section>
+      <section className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4 dark:border-amber-900 dark:bg-amber-950/20">
+        <div className="mb-4"><p className="text-sm font-extrabold text-amber-900 dark:text-amber-200">2. Definir seguimiento *</p><p className="mt-1 text-xs text-amber-700 dark:text-amber-300">Indica la siguiente acción para que el paciente no quede sin seguimiento.</p></div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div><label className={labelClass}>Acción</label><select className={inputClass} value={closure.followUpStatus} onChange={e => setClosure(current => ({ ...current, followUpStatus: e.target.value as Appointment['followUpStatus'] | '' }))}><option value="">Seleccionar…</option><option value="pending">Contactar después</option><option value="scheduled">Siguiente cita agendada</option><option value="completed">Seguimiento realizado</option><option value="not_required">No requiere seguimiento</option></select></div>
+          <div><label className={labelClass}>Recordar el</label><input type="date" className={inputClass} disabled={closure.followUpStatus !== 'pending'} value={closure.followUpDate} onChange={e => setClosure(current => ({ ...current, followUpDate: e.target.value }))} /></div>
+          <div className="sm:col-span-2"><label className={labelClass}>Nota de seguimiento</label><textarea className={inputClass} rows={2} value={closure.followUpNote} onChange={e => setClosure(current => ({ ...current, followUpNote: e.target.value }))} placeholder="Ej. Confirmar evolución y agendar nueva cita." /></div>
+        </div>
+      </section>
+      <div className="flex justify-end gap-3 border-t border-slate-100 pt-4 dark:border-slate-800"><Button variant="outline" onClick={onClose}>Cancelar</Button><Button type="submit" disabled={saving}>{saving ? 'Guardando…' : 'Cerrar sesión'}</Button></div>
     </form>
   </Modal>;
 }

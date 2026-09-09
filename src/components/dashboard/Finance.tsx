@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { Card, CardBody, CardHeader } from '../ui/Card';
 import { formatCurrency } from '../../utils/format';
 import { repository } from '../../data/repository';
+import { isAppointmentPaid } from '../../utils/appointmentWorkflow';
 
 export function Finance() {
   const { stats, appointments } = useApp();
@@ -39,7 +40,7 @@ export function Finance() {
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
     const filtered = appointments.filter(a => {
       const d = new Date(a.date);
-      return d >= monthStart && d <= monthEnd && a.status !== 'cancelled' && a.status !== 'no-show';
+      return d >= monthStart && d <= monthEnd && isAppointmentPaid(a);
     });
     return {
       ordered: [...filtered].sort((a, b) => b.date.localeCompare(a.date) || b.startTime.localeCompare(a.startTime)),
@@ -61,7 +62,7 @@ export function Finance() {
           <CardBody>
             <p className="text-sm text-gray-500 font-medium">Ingresos del Mes</p>
             <p className="text-3xl font-bold text-gray-900 mt-2">{formatCurrency(stats.revenueThisMonth)}</p>
-            <p className="text-xs text-gray-500 mt-1">{stats.completedSessionsThisMonth} sesiones cobradas</p>
+            <p className="text-xs text-gray-500 mt-1">Pagos confirmados durante el mes</p>
           </CardBody>
         </Card>
         <Card>
