@@ -3,6 +3,7 @@ import { Appointment, SessionNote } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
+import { formatCalendarDate } from '../../utils/format';
 
 export function SessionNoteForm({ appointment, onClose }: { appointment: Appointment; onClose: () => void }) {
   const { updateAppointment } = useApp();
@@ -83,7 +84,7 @@ export function SessionNoteForm({ appointment, onClose }: { appointment: Appoint
 
   return <Modal isOpen onClose={onClose} title={`Nota de sesión · ${appointment.patientName}`} size="lg">
     <form onSubmit={handleSubmit} className="space-y-5">
-      <div className="rounded-2xl bg-primary-lighter p-4 text-sm text-primary-dark dark:bg-slate-800 dark:text-slate-200"><strong>{new Date(appointment.date).toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}</strong> · {appointment.startTime}–{appointment.endTime}. Al guardar, la cita se marca como completada.</div>
+      <div className="rounded-2xl bg-primary-lighter p-4 text-sm text-primary-dark dark:bg-slate-800 dark:text-slate-200"><strong>{formatCalendarDate(appointment.date, { weekday: 'long', day: 'numeric', month: 'long' })}</strong> · {appointment.startTime}–{appointment.endTime}. Al guardar, la cita se marca como completada.</div>
       {error && <div className="rounded-xl border border-danger bg-danger-light p-3 text-sm text-danger">{error}</div>}
       <div className="grid gap-4 sm:grid-cols-2">
         <div><label className={labelClass}>¿Cómo llegó el paciente? *</label><textarea className={inputClass} rows={3} value={note.arrivalStatus} onChange={e => update('arrivalStatus', e.target.value)} placeholder="Ej. Refiere menos dolor al caminar, con rigidez matutina." /></div>

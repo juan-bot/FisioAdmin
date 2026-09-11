@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Prescription } from '../types';
-import { formatDate } from './format';
+import { formatDate, getLocalDateISO } from './format';
 
 export function exportPrescriptionToPDF(prescription: Prescription) {
   const therapistName = prescription.therapistName;
@@ -40,7 +40,7 @@ export function exportPrescriptionToPDF(prescription: Prescription) {
 
     doc.setFontSize(9);
     doc.setTextColor(200, 220, 255);
-    doc.text(`Generado el ${formatDate(new Date().toISOString().split('T')[0])}`, pageWidth / 2, 44, { align: 'center' });
+    doc.text(`Generado el ${formatDate(getLocalDateISO())}`, pageWidth / 2, 44, { align: 'center' });
 
     yPosition = 70;
   };

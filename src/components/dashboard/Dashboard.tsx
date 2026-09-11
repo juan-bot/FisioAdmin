@@ -3,7 +3,7 @@ import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Too
 import { useApp } from '../../context/AppContext';
 import { useActivityTracking } from '../../utils/activity';
 import { Card, CardBody, CardHeader } from '../ui/Card';
-import { formatCurrency, formatTime, getAppointmentTypeLabel, getStatusLabel } from '../../utils/format';
+import { formatCalendarDate, formatCurrency, formatTime, getAppointmentTypeLabel, getLocalDateISO, getStatusLabel, parseCalendarDate } from '../../utils/format';
 import { needsFollowUp, needsPayment } from '../../utils/appointmentWorkflow';
 
 const MONTHS: Date[] = (() => {
@@ -48,7 +48,7 @@ const tooltipStyle = { color: 'var(--text-main)', background: 'var(--surface-ele
 export default function Dashboard({ onNavigate, onCreateAppointment, onManageSession, onViewPatient }: { onNavigate: (tab: string) => void; onCreateAppointment: (patientId?: string) => void; onManageSession: (appointmentId: string) => void; onViewPatient: (id: string) => void }) {
   const { appointments, patients, stats, currentTherapist } = useApp();
   const { trackClick } = useActivityTracking({ trackLifecycle: false });
-  const todayISO = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const todayISO = useMemo(() => getLocalDateISO(), []);
   const todayAppointments = useMemo(() => appointments.filter(a => a.date === todayISO).sort((a, b) => a.startTime.localeCompare(b.startTime)), [appointments, todayISO]);
   const recentPatients = useMemo(() => patients.slice(0, 5), [patients]);
   const monthlyData = useMemo(() => MONTHS.map(date => ({
@@ -58,7 +58,7 @@ export default function Dashboard({ onNavigate, onCreateAppointment, onManageSes
       return created.getFullYear() === date.getFullYear() && created.getMonth() === date.getMonth();
     }).length,
     ingresos: appointments.filter(a => {
-      const appointmentDate = new Date(a.date);
+      const appointmentDate = parseCalendarDate(a.date);
       return appointmentDate.getFullYear() === date.getFullYear()
         && appointmentDate.getMonth() === date.getMonth()
         && !['cancelled', 'no-show'].includes(a.status)
@@ -110,7 +110,7 @@ export default function Dashboard({ onNavigate, onCreateAppointment, onManageSes
             <button onClick={() => onNavigate('appointments')} className="rounded-2xl border border-sky-200 bg-sky-50 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-sm dark:border-sky-900 dark:bg-sky-950/20"><p className="text-2xl font-extrabold text-sky-700 dark:text-sky-300">{pendingWork.undocumented.length}</p><p className="mt-1 text-sm font-bold text-slate-800 dark:text-white">Notas clínicas</p><p className="mt-1 text-xs text-slate-500">Sesiones completadas sin nota</p></button>
             <button onClick={() => onNavigate('patients')} className="rounded-2xl border border-violet-200 bg-violet-50 p-4 text-left transition hover:-translate-y-0.5 hover:shadow-sm dark:border-violet-900 dark:bg-violet-950/20"><p className="text-2xl font-extrabold text-violet-700 dark:text-violet-300">{pendingWork.patientsWithoutAppointment.length}</p><p className="mt-1 text-sm font-bold text-slate-800 dark:text-white">Sin próxima cita</p><p className="mt-1 text-xs text-slate-500">Pacientes activos sin seguimiento agendado</p></button>
           </div>}
-          {pendingWork.unpaid.length > 0 && <div className="mt-4 divide-y divide-slate-100 rounded-2xl border border-slate-200 px-4 dark:divide-slate-800 dark:border-slate-700">{pendingWork.unpaid.slice(0, 4).map(appointment => <div key={appointment.id} className="flex flex-wrap items-center gap-3 py-3"><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-slate-900 dark:text-white">Cobrar a {appointment.patientName}</p><p className="text-xs text-slate-400">{new Date(appointment.date).toLocaleDateString('es-MX')} · {appointment.amount ? formatCurrency(appointment.amount) : 'Monto sin registrar'}</p></div><button onClick={() => onManageSession(appointment.id)} className="rounded-lg bg-rose-100 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-200">Registrar cobro</button></div>)}</div>}
+          {pendingWork.unpaid.length > 0 && <div className="mt-4 divide-y divide-slate-100 rounded-2xl border border-slate-200 px-4 dark:divide-slate-800 dark:border-slate-700">{pendingWork.unpaid.slice(0, 4).map(appointment => <div key={appointment.id} className="flex flex-wrap items-center gap-3 py-3"><div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-slate-900 dark:text-white">Cobrar a {appointment.patientName}</p><p className="text-xs text-slate-400">{formatCalendarDate(appointment.date, {})} · {appointment.amount ? formatCurrency(appointment.amount) : 'Monto sin registrar'}</p></div><button onClick={() => onManageSession(appointment.id)} className="rounded-lg bg-rose-100 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-200">Registrar cobro</button></div>)}</div>}
         </CardBody>
       </Card>
 

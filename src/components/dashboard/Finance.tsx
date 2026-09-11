@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card, CardBody, CardHeader } from '../ui/Card';
-import { formatCurrency } from '../../utils/format';
+import { formatCalendarDate, formatCurrency, parseCalendarDate } from '../../utils/format';
 import { repository } from '../../data/repository';
 
 export function Finance() {
@@ -38,7 +38,7 @@ export function Finance() {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
     const filtered = appointments.filter(a => {
-      const d = new Date(a.date);
+      const d = parseCalendarDate(a.date);
       return d >= monthStart && d <= monthEnd && !['cancelled', 'no-show'].includes(a.status) && Boolean(a.amount && a.amount > 0);
     });
     return {
@@ -148,7 +148,7 @@ export function Finance() {
                 <tbody className="divide-y divide-gray-100">
                   {ordered.map(a => (
                     <tr key={a.id}>
-                      <td className="px-4 py-3 text-gray-600">{new Date(a.date).toLocaleDateString('es-MX')}</td>
+                      <td className="px-4 py-3 text-gray-600">{formatCalendarDate(a.date, {})}</td>
                       <td className="px-4 py-3 font-medium text-gray-900">{a.patientName}</td>
                       <td className="px-4 py-3 text-gray-600 capitalize">{a.type}</td>
                       <td className="px-4 py-3 text-right font-medium text-gray-900">{formatCurrency(a.amount || 0)}</td>

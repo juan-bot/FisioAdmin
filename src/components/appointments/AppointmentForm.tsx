@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Appointment } from '../../types';
+import { getLocalDateISO } from '../../utils/format';
 
 interface AppointmentFormProps {
   appointment: Appointment | null;
@@ -13,7 +14,7 @@ interface AppointmentFormProps {
 export function AppointmentForm({ appointment, onClose, initialPatientId = '' }: AppointmentFormProps) {
   const { patients, addAppointment, updateAppointment, currentTherapist } = useApp();
   const [form, setForm] = useState(() => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateISO();
     return {
       patientId: appointment?.patientId || initialPatientId,
       date: appointment?.date || today,

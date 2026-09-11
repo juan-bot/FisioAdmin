@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, memo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Card, CardBody, CardHeader } from '../ui/Card';
-import { formatCurrency, getAge, getAppointmentTypeLabel } from '../../utils/format';
+import { formatCurrency, getAge, getAppointmentTypeLabel, parseCalendarDate } from '../../utils/format';
 import { Patient } from '../../types';
 
 const MONTHS: Date[] = (() => {
@@ -146,7 +146,7 @@ export default function Metrics() {
       const day = new Date(weekStart);
       day.setDate(weekStart.getDate() + i);
       return appointments.filter(a => {
-        const dt = new Date(a.date);
+        const dt = parseCalendarDate(a.date);
         return dt >= weekStart && dt < weekEnd && dt.getDay() === (i + 1) % 7;
       }).length;
     });

@@ -4,7 +4,7 @@ import { Card, CardBody, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { ProgressForm } from './ProgressForm';
-import { formatDate } from '../../utils/format';
+import { formatCalendarDate, formatDate } from '../../utils/format';
 import { ProgressRecord } from '../../types';
 
 const MetricTrendChart = memo(function MetricTrendChart({ patientId }: { patientId: string }) {
@@ -12,7 +12,7 @@ const MetricTrendChart = memo(function MetricTrendChart({ patientId }: { patient
   const records = useMemo(() =>
     progressRecords
       .filter(r => r.patientId === patientId)
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+      .sort((a, b) => a.date.localeCompare(b.date)),
     [progressRecords, patientId]
   );
 
@@ -36,7 +36,7 @@ const MetricTrendChart = memo(function MetricTrendChart({ patientId }: { patient
   const chartHeight = 160;
 
   const labels = useMemo(() =>
-    records.map(r => new Date(r.date).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })),
+    records.map(r => formatCalendarDate(r.date, { day: 'numeric', month: 'short' })),
     [records]
   );
 

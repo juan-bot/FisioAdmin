@@ -5,7 +5,7 @@ import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { AppointmentForm } from './AppointmentForm';
 import { SessionNoteForm } from './SessionNoteForm';
-import { getStatusLabel, getAppointmentTypeLabel, formatTime, formatCurrency } from '../../utils/format';
+import { formatCalendarDate, getStatusLabel, getAppointmentTypeLabel, formatTime, formatCurrency } from '../../utils/format';
 import { Appointment } from '../../types';
 import { followUpStatusOf, paymentStatusOf } from '../../utils/appointmentWorkflow';
 
@@ -122,7 +122,7 @@ export default function Appointments({ initialCreate = false, initialPatientId =
               <article key={a.id} className="rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
                 <div className="flex items-start gap-3">
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-light text-sm font-bold text-primary-dark">{a.patientName.split(' ').map(n => n[0]).join('').slice(0, 2)}</div>
-                  <div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-slate-950 dark:text-white">{a.patientName}</p><p className="mt-1 text-xs text-slate-500">{new Date(a.date).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })} · {formatTime(a.startTime)}</p></div>
+                  <div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-slate-950 dark:text-white">{a.patientName}</p><p className="mt-1 text-xs text-slate-500">{formatCalendarDate(a.date, { day: 'numeric', month: 'short' })} · {formatTime(a.startTime)}</p></div>
                   <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{a.amount ? formatCurrency(a.amount) : '—'}</p>
                 </div>
                 <div className="mt-4 flex items-center justify-between gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
@@ -167,7 +167,7 @@ export default function Appointments({ initialCreate = false, initialPatientId =
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="text-sm text-gray-700">{new Date(a.date).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                      <p className="text-sm text-gray-700">{formatCalendarDate(a.date, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' })}</p>
                     </td>
                     <td className="px-4 py-3">
                       <p className="text-sm text-gray-700">{formatTime(a.startTime)} - {formatTime(a.endTime)}</p>
@@ -244,7 +244,7 @@ export default function Appointments({ initialCreate = false, initialPatientId =
 
       <Modal isOpen={!!deleteConfirm} onClose={() => setDeleteConfirm(null)} title="Eliminar Cita" size="sm">
         <p className="text-gray-700">
-          ¿Seguro que quieres eliminar la cita de <strong>{deleteConfirm?.patientName}</strong> del {deleteConfirm && new Date(deleteConfirm.date).toLocaleDateString('es-MX')}?
+          ¿Seguro que quieres eliminar la cita de <strong>{deleteConfirm?.patientName}</strong> del {deleteConfirm && formatCalendarDate(deleteConfirm.date, {})}?
         </p>
         <div className="mt-6 flex justify-end gap-3">
           <Button variant="outline" onClick={() => setDeleteConfirm(null)}>Cancelar</Button>

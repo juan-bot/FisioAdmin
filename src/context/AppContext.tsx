@@ -4,6 +4,7 @@ import { Patient, Appointment, Prescription, ProgressRecord, DashboardStats } fr
 import { useAuth } from './AuthContext';
 import { notify } from '../utils/notify';
 import { repository } from '../data/repository';
+import { getLocalDateISO, parseCalendarDate } from '../utils/format';
 
 export const CURRENT_THERAPIST = { id: 't1', name: 'Belén Peña' };
 
@@ -149,23 +150,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const stats = useMemo<DashboardStats>(() => {
-    const todayISO = new Date().toISOString().split('T')[0];
+    const todayISO = getLocalDateISO();
     const now = new Date();
     const startOfWeek = new Date(now);
     startOfWeek.setDate(now.getDate() - now.getDay() + 1);
+    startOfWeek.setHours(0, 0, 0, 0);
     const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setDate(startOfWeek.getDate() + 7);
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
 
     const appointmentsToday = appointments.filter(a => a.date === todayISO).length;
     const appointmentsThisWeek = appointments.filter(a => {
-      const date = new Date(a.date);
-      return date >= startOfWeek && date <= endOfWeek;
+      const date = parseCalendarDate(a.date);
+      return date >= startOfWeek && date < endOfWeek;
     }).length;
     const pendingPrescriptions = prescriptions.filter(p => p.status === 'active').length;
     const appointmentsThisMonth = appointments.filter(a => {
-      const d = new Date(a.date);
+      const d = parseCalendarDate(a.date);
       return d >= monthStart && d <= monthEnd;
     });
     const appointmentsWithAmount = appointmentsThisMonth.filter(a => !['cancelled', 'no-show'].includes(a.status) && Boolean(a.amount && a.amount > 0));

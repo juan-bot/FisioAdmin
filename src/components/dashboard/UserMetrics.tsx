@@ -7,7 +7,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area,
 } from 'recharts';
-import { formatCurrency } from '../../utils/format';
+import { formatCalendarDate, formatCurrency } from '../../utils/format';
 import { formatLastActivity, formatTimestamp } from '../../utils/activity';
 import { isAppointmentPaid, needsPayment, paymentDateOf } from '../../utils/appointmentWorkflow';
 
@@ -430,7 +430,7 @@ export function UserMetrics({ therapistId, therapistName }: { therapistId: strin
                       {amountBreakdown.appointmentsWithoutAmount.slice(0, 10).map(a => (
                         <tr key={a.id}>
                           <td className="px-4 py-3 font-medium text-gray-900">{a.patientName}</td>
-                          <td className="px-4 py-3 text-gray-500">{new Date(a.date).toLocaleDateString('es-MX')}</td>
+                          <td className="px-4 py-3 text-gray-500">{formatCalendarDate(a.date, {})}</td>
                           <td className="px-4 py-3 text-gray-500 capitalize">{a.type}</td>
                           <td className="px-4 py-3 text-right">
                             <span className="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-medium">Pendiente de cobro</span>

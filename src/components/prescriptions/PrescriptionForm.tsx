@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { Prescription, Treatment } from '../../types';
+import { getLocalDateISO } from '../../utils/format';
 
 interface PrescriptionFormProps {
   prescription: Prescription | null;
@@ -42,7 +43,7 @@ export function PrescriptionForm({ prescription, initialPatientId = '', onClose 
 
   const [form, setForm] = useState(() => ({
     patientId: prescription?.patientId || initialPatientId,
-    date: prescription?.date || new Date().toISOString().split('T')[0],
+    date: prescription?.date || getLocalDateISO(),
     diagnosis: prescription?.diagnosis || '',
     frequency: prescription?.frequency || '',
     duration: prescription?.duration || '',

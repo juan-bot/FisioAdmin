@@ -4,7 +4,7 @@ import { Card, CardBody, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { AppointmentForm } from './AppointmentForm';
-import { getAppointmentTypeLabel, formatTime, formatCurrency } from '../../utils/format';
+import { getAppointmentTypeLabel, formatTime, formatCurrency, getLocalDateISO } from '../../utils/format';
 import { Appointment } from '../../types';
 
 const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -15,7 +15,7 @@ export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showForm, setShowForm] = useState(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [selectedDate, setSelectedDate] = useState<string>(getLocalDateISO());
   const [deleteConfirm, setDeleteConfirm] = useState<Appointment | null>(null);
 
   const year = currentDate.getFullYear();
@@ -25,7 +25,7 @@ export default function Calendar() {
   const firstDayOfWeek = useMemo(() => (firstDay.getDay() + 6) % 7, [firstDay]);
   const daysInMonth = useMemo(() => new Date(year, month + 1, 0).getDate(), [year, month]);
 
-  const todayISO = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const todayISO = useMemo(() => getLocalDateISO(), []);
 
   const appointmentMap = useMemo(() => {
     const map = new Map<string, Appointment[]>();
@@ -76,7 +76,7 @@ export default function Calendar() {
   const goToToday = useCallback(() => {
     const today = new Date();
     setCurrentDate(new Date(today.getFullYear(), today.getMonth(), 1));
-    setSelectedDate(today.toISOString().split('T')[0]);
+    setSelectedDate(getLocalDateISO(today));
   }, []);
 
   const getTypeColor = (type: string) => {

@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { Modal } from '../ui/Modal';
 import { Button } from '../ui/Button';
 import { ProgressRecord, Metric } from '../../types';
+import { getLocalDateISO } from '../../utils/format';
 
 interface ProgressFormProps {
   record: ProgressRecord | null;
@@ -24,7 +25,7 @@ export function ProgressForm({ record, initialPatientId = '', onClose }: Progres
   const { patients, addProgressRecord, updateProgressRecord, progressRecords, currentTherapist } = useApp();
   const [form, setForm] = useState(() => ({
     patientId: record?.patientId || initialPatientId,
-    date: record?.date || new Date().toISOString().split('T')[0],
+    date: record?.date || getLocalDateISO(),
     painLevel: record?.painLevel || 5,
     mobilityScore: record?.mobilityScore || 50,
     strengthScore: record?.strengthScore || 50,

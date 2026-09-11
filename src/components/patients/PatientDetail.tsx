@@ -6,18 +6,18 @@ import { Modal } from '../ui/Modal';
 import { PatientForm } from './PatientForm';
 import { ClinicalHistoryForm } from './ClinicalHistoryForm';
 import { PatientDocuments } from './PatientDocuments';
-import { formatDate, getAge, getStatusLabel, getAppointmentTypeLabel, formatTime, formatCurrency, getInitials } from '../../utils/format';
+import { formatCalendarDate, formatDate, getAge, getStatusLabel, getAppointmentTypeLabel, formatTime, formatCurrency, getInitials } from '../../utils/format';
 
 function PatientProgressChart({ patientId }: { patientId: string }) {
   const { progressRecords } = useApp();
   const records = useMemo(() =>
     progressRecords
       .filter(r => r.patientId === patientId)
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+      .sort((a, b) => a.date.localeCompare(b.date)),
     [progressRecords, patientId]
   );
 
-  const labels = useMemo(() => records.map(r => new Date(r.date).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })), [records]);
+  const labels = useMemo(() => records.map(r => formatCalendarDate(r.date, { day: 'numeric', month: 'short' })), [records]);
   const painData = useMemo(() => records.map(r => r.painLevel), [records]);
   const mobilityData = useMemo(() => records.map(r => r.mobilityScore), [records]);
 
@@ -90,7 +90,7 @@ export default function PatientDetail({ patientId, onBack, onCreateAppointment, 
   );
 
   const patientProgress = useMemo(() =>
-    progressRecords.filter(r => r.patientId === patientId).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+    progressRecords.filter(r => r.patientId === patientId).sort((a, b) => a.date.localeCompare(b.date)),
     [progressRecords, patientId]
   );
 
@@ -267,8 +267,8 @@ export default function PatientDetail({ patientId, onBack, onCreateAppointment, 
                     <div key={a.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
                       <div className="flex items-center gap-3">
                         <div className="text-center px-3 py-1 bg-white rounded-lg border border-gray-200">
-                          <p className="text-sm font-bold text-gray-900">{new Date(a.date).getDate()}</p>
-                          <p className="text-[10px] text-gray-500 uppercase">{new Date(a.date).toLocaleDateString('es-MX', { month: 'short' })}</p>
+                          <p className="text-sm font-bold text-gray-900">{formatCalendarDate(a.date, { day: 'numeric' })}</p>
+                          <p className="text-[10px] text-gray-500 uppercase">{formatCalendarDate(a.date, { month: 'short' })}</p>
                         </div>
                         <div>
                           <p className="text-sm font-medium text-gray-900">{getAppointmentTypeLabel(a.type)}</p>
@@ -359,7 +359,7 @@ export default function PatientDetail({ patientId, onBack, onCreateAppointment, 
                   {patientPrescriptions.map(r => (
                     <div key={r.id} className="p-3 rounded-lg bg-gray-50">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-gray-900">{new Date(r.date).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                        <p className="text-sm font-medium text-gray-900">{formatCalendarDate(r.date, { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                         <span className={`badge ${r.status === 'active' ? 'badge-success' : r.status === 'completed' ? 'badge-info' : 'badge-secondary'}`}>{getStatusLabel(r.status)}</span>
                       </div>
                       <p className="text-xs text-gray-600 mt-1">{r.diagnosis}</p>

@@ -1,9 +1,20 @@
-const parseCalendarDate = (date: string) => {
+/**
+ * Parses date-only values as local calendar dates. The Date constructor treats
+ * `YYYY-MM-DD` as UTC, which otherwise displays the previous day in Mexico.
+ */
+export const parseCalendarDate = (date: string) => {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
   return match
     ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
     : new Date(date);
 };
+
+/** Returns today's date for date inputs in the user's local time zone. */
+export const getLocalDateISO = (date = new Date()) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+export const formatCalendarDate = (date: string, options: Intl.DateTimeFormatOptions) =>
+  parseCalendarDate(date).toLocaleDateString('es-MX', options);
 
 /** Calculates age from a calendar date without UTC date-shift issues. */
 export const getAge = (dateOfBirth: string, referenceDate = new Date()): number | null => {
@@ -18,13 +29,11 @@ export const getAge = (dateOfBirth: string, referenceDate = new Date()): number 
 };
 
 export const formatDate = (date: string) => {
-  const d = parseCalendarDate(date);
-  return d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+  return formatCalendarDate(date, { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
 export const formatDateLong = (date: string) => {
-  const d = parseCalendarDate(date);
-  return d.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  return formatCalendarDate(date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 };
 
 export const formatTime = (time: string) => {

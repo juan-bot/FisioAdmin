@@ -4,12 +4,13 @@ import { Patient, TherapeuticReportData } from '../../types';
 import { exportClinicalHistoryToPDF, exportTherapeuticReportToPDF } from '../../utils/exportClinicalDocuments';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
+import { getLocalDateISO } from '../../utils/format';
 
 export function PatientDocuments({ patient, onClose }: { patient: Patient; onClose: () => void }) {
   const { currentTherapist } = useApp();
   const [mode, setMode] = useState<'menu' | 'report'>('menu');
   const [report, setReport] = useState<TherapeuticReportData>({
-    date: new Date().toISOString().split('T')[0], addressee: 'A quien corresponda:',
+    date: getLocalDateISO(), addressee: 'A quien corresponda:',
     diagnosis: patient.clinicalAssessment?.physiotherapyDiagnosis || '',
     clinicalStatus: '', recommendations: [''], returnPlan: '', therapistName: currentTherapist.name,
     professionalLicense: '', clinicName: 'FisioAdmin', phone: '', email: '', address: '',

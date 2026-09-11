@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { BilateralMeasurement, ClinicalAssessment, Patient } from '../../types';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
+import { getLocalDateISO } from '../../utils/format';
 
 const goniometryTemplate: BilateralMeasurement[] = [
   ['Cervical', 'Flexión', '0°-45°'], ['Cervical', 'Extensión', '0°-45°'], ['Cervical', 'Inclinación', '0°-45°'], ['Cervical', 'Rotación', '0°-60°'],
@@ -18,7 +19,7 @@ const reflexTemplate: BilateralMeasurement[] = ['Bicipital', 'Braquiorradial', '
 
 function emptyAssessment(therapistName: string): ClinicalAssessment {
   return {
-    assessmentDate: new Date().toISOString().split('T')[0], therapistName, reasonForConsultation: '',
+    assessmentDate: getLocalDateISO(), therapistName, reasonForConsultation: '',
     nonPathologicalHistory: { smoking: '', alcohol: '', drugs: '', physicalActivity: '', mealsPerDay: '', housing: '' },
     gynecologicalHistory: { menarche: '', pregnancies: '', births: '', abortions: '' },
     pathologicalHistory: { diseases: '', detectionDate: '', trauma: '', hospitalizations: '', surgeries: '' },
